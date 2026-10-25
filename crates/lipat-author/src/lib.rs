@@ -20,6 +20,16 @@ pub enum Operation {
         node_id: String,
         frame: Option<Frame>,
     },
+    SetAnimation {
+        #[serde(rename = "nodeId")]
+        node_id: String,
+        animation: Option<EntranceAnimation>,
+    },
+    SetStep {
+        #[serde(rename = "nodeId")]
+        node_id: String,
+        step: Option<u32>,
+    },
     SetLayout {
         #[serde(rename = "nodeId")]
         node_id: String,
@@ -194,6 +204,12 @@ pub fn apply_operations(doc: &DeckDocument, operations: &[Operation]) -> Result<
             }
             Operation::SetFrame { node_id, frame } => {
                 find_doc_node(&mut next, node_id)?.frame = *frame
+            }
+            Operation::SetAnimation { node_id, animation } => {
+                find_doc_node(&mut next, node_id)?.animation = animation.clone();
+            }
+            Operation::SetStep { node_id, step } => {
+                find_doc_node(&mut next, node_id)?.step = *step;
             }
             Operation::SetLayout { node_id, layout } => {
                 let n = find_doc_node(&mut next, node_id)?;

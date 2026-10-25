@@ -9,6 +9,7 @@ const names = [
   "agent",
   "reveal",
   "render",
+  "motion",
 ];
 export default defineConfig({
   resolve: {

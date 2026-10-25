@@ -49,12 +49,20 @@ export interface TextRun {
 }
 /** Agents can use plain strings or explicit rich text runs. */
 export type TextContent = string | readonly TextRun[];
+/** Leaf entrance animation; durations/delays use milliseconds, with 350/0 defaults. */
+export interface EntranceAnimation {
+  readonly effect: "fade" | "rise" | "slide" | "zoom";
+  readonly durationMs?: number;
+  readonly delayMs?: number;
+  readonly easing?: "easeOut" | "easeInOut" | "linear";
+}
 /** Stable node IDs are unique across a deck, so edits survive reordering. */
 export interface NodeBase {
   readonly id: string;
   readonly frame?: ElementFrame;
   readonly style?: TextStyle;
   readonly step?: number;
+  readonly animation?: EntranceAnimation;
 }
 /** Containers express layout intent; only canvas children require explicit frames. */
 export type SlideNode = NodeBase &
@@ -149,6 +157,7 @@ export type SceneElement = {
   readonly frame: ElementFrame;
   readonly style: TextStyle;
   readonly step?: number;
+  readonly animation?: EntranceAnimation;
 } & (
   | {
       readonly type: "text";
@@ -192,6 +201,18 @@ export interface SlideScene {
   readonly size: SlideSize;
   readonly assets: readonly DeckAsset[];
   readonly slides: readonly SceneSlide[];
+}
+/** A playback adapter owns one rendered slide until destroy; the surface is host-specific. */
+export interface SlidePlaybackDriver<Surface> {
+  /** Mount on an SVG rendered from the supplied validated slide; call setStep to start. */
+  mount(surface: Surface, slide: SceneSlide): SlidePlaybackController;
+}
+/** Reveal steps are nonnegative integers; backward navigation hides future elements immediately. */
+export interface SlidePlaybackController {
+  /** Reveal newly visible content and retain animations already playing. */
+  setStep(step: number): void;
+  /** Cancel animation, restore owned styles and detach listeners; safe to call again. */
+  destroy(): void;
 }
 /** Diagnostics point agents to the exact slide and node requiring attention. */
 export interface DeckDiagnostic {
@@ -238,6 +259,16 @@ export type ContainerLayout =
   | { readonly type: "canvas" };
 /** Atomic serializable authoring operations form the agent tool contract. */
 export type DeckOperation =
+  | {
+      readonly type: "setAnimation";
+      readonly nodeId: string;
+      readonly animation: EntranceAnimation | null;
+    }
+  | {
+      readonly type: "setStep";
+      readonly nodeId: string;
+      readonly step: number | null;
+    }
   | {
       readonly type: "updateText";
       readonly nodeId: string;

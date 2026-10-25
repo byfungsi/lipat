@@ -443,6 +443,7 @@ impl Compiler<'_> {
                     frame,
                     style,
                     step,
+                    animation: n.animation.clone(),
                     kind,
                 });
             }

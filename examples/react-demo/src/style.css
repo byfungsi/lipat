@@ -133,6 +133,8 @@ p {
 }
 .mode-tabs {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   background: #eaeaf1;
   border-radius: 9px;
   padding: 4px;

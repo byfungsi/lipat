@@ -23,6 +23,7 @@ export default defineConfig({
           { text: "Playground", link: "/playground" },
           { text: "Agent authoring", link: "/agents" },
           { text: "React", link: "/react" },
+          { text: "Animations", link: "/animations" },
           { text: "PPTX import/export", link: "/pptx" },
           { text: "WASM and native", link: "/wasm" },
           { text: "Support & parity", link: "/support" },

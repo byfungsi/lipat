@@ -24,12 +24,14 @@ export const sampleDeck: DeckInput = {
             type: "heading",
             text: "Less positioning.\nMore possibility.",
             style: { fontSize: 66 },
+            animation: { effect: "rise", durationMs: 450 },
           },
           {
             id: "intro",
             type: "text",
             text: "Create with content and layout intent.\nLet the portable engine handle the details.",
             style: { fontSize: 25, color: "#667085" },
+            animation: { effect: "fade", durationMs: 350, delayMs: 80 },
           },
           {
             id: "footer",
@@ -129,6 +131,7 @@ export const sampleDeck: DeckInput = {
             text: "One semantic document → one resolved scene → many outputs.",
             style: { fontSize: 20, color: "#667085" },
             step: 1,
+            animation: { effect: "slide", durationMs: 400 },
           },
         ],
       },

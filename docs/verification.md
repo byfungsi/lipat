@@ -20,4 +20,4 @@ LIPAT_PYTHON=.venv/bin/python npm run verify:interop
 
 ## Package preparation
 
-`npm run build` puts ESM, declarations and the compiled WASM asset in `packages/lipat/dist`. The public package is `@byfungsi/lipat`. The facade bundles all private TypeScript workspaces; no private packages need to be published. React is an optional peer. Run `npm pack -w @byfungsi/lipat` to inspect a release locally. The GitHub Pages workflow verifies and deploys documentation from main using the /lipat/ base path. Release archives are prepared with `npm run release:prepare` and published explicitly as `@byfungsi/lipat`.
+`npm run build` puts ESM, declarations and the compiled WASM asset in `packages/lipat/dist`. The public package is `@byfungsi/lipat`. The facade bundles all private TypeScript workspaces; no private packages need to be published. React and Motion are optional peers. Run `npm pack -w @byfungsi/lipat` to inspect a release locally. The GitHub Pages workflow verifies and deploys documentation from main using the /lipat/ base path. Release archives are prepared with `npm run release:prepare` and published explicitly as `@byfungsi/lipat`.

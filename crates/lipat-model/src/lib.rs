@@ -157,8 +157,43 @@ pub struct Node {
     pub style: TextStyle,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub step: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub animation: Option<EntranceAnimation>,
     #[serde(flatten)]
     pub kind: NodeKind,
+}
+/// Portable entrance effects; milliseconds are serialized, never executable Motion props.
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntranceAnimation {
+    pub effect: EntranceEffect,
+    #[serde(default = "default_animation_duration")]
+    #[schemars(range(min = 0, max = 10000))]
+    pub duration_ms: f64,
+    #[serde(default)]
+    #[schemars(range(min = 0, max = 60000))]
+    pub delay_ms: f64,
+    #[serde(default)]
+    pub easing: AnimationEasing,
+}
+fn default_animation_duration() -> f64 {
+    350.
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum EntranceEffect {
+    Fade,
+    Rise,
+    Slide,
+    Zoom,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum AnimationEasing {
+    #[default]
+    EaseOut,
+    EaseInOut,
+    Linear,
 }
 fn default_level() -> u8 {
     1
@@ -302,6 +337,8 @@ pub struct SceneElement {
     pub style: TextStyle,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub step: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub animation: Option<EntranceAnimation>,
     #[serde(flatten)]
     pub kind: SceneKind,
 }
@@ -517,6 +554,21 @@ fn check_node(
         check_frame(f)?;
     }
     check_style(&n.style)?;
+    if let Some(animation) = &n.animation {
+        if n.children().is_some()
+            || !animation.duration_ms.is_finite()
+            || !(0. ..=10000.).contains(&animation.duration_ms)
+            || !animation.delay_ms.is_finite()
+            || !(0. ..=60000.).contains(&animation.delay_ms)
+        {
+            let mut error = LipatError::new(
+                "invalidDocument",
+                "Entrance animations require a leaf node, duration 0–10000 ms and delay 0–60000 ms",
+            );
+            error.node_id = Some(n.id.clone());
+            return Err(error);
+        }
+    }
     let check_text = |text: &TextContent| -> Result<()> {
         if text.text().len() > 1_000_000 {
             return Err(LipatError::new(
@@ -687,6 +739,7 @@ pub fn scene_to_document(scene: &SlideScene) -> DeckDocument {
                     frame: None,
                     style: TextStyle::default(),
                     step: None,
+                    animation: None,
                     kind: NodeKind::Canvas {
                         children: s
                             .elements
@@ -696,6 +749,7 @@ pub fn scene_to_document(scene: &SlideScene) -> DeckDocument {
                                 frame: Some(e.frame),
                                 style: e.style.clone(),
                                 step: e.step,
+                                animation: e.animation.clone(),
                                 kind: match &e.kind {
                                     SceneKind::Text { text, runs, .. } => NodeKind::Text {
                                         text: if runs.is_empty() {

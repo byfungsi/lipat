@@ -46,6 +46,10 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "additionalProperties": false,
     "definitions": {
+      "AnimationEasing": {
+        "enum": ["easeOut", "easeInOut", "linear"],
+        "type": "string"
+      },
       "Asset": {
         "additionalProperties": false,
         "properties": {
@@ -69,6 +73,43 @@
         },
         "required": ["data", "id", "mimeType"],
         "type": "object"
+      },
+      "EntranceAnimation": {
+        "additionalProperties": false,
+        "description": "Portable entrance effects; milliseconds are serialized, never executable Motion props.",
+        "properties": {
+          "delayMs": {
+            "default": 0.0,
+            "format": "double",
+            "maximum": 60000.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "durationMs": {
+            "default": 350.0,
+            "format": "double",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "easing": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/AnimationEasing"
+              }
+            ],
+            "default": "easeOut"
+          },
+          "effect": {
+            "$ref": "#/definitions/EntranceEffect"
+          }
+        },
+        "required": ["effect"],
+        "type": "object"
+      },
+      "EntranceEffect": {
+        "enum": ["fade", "rise", "slide", "zoom"],
+        "type": "string"
       },
       "Frame": {
         "additionalProperties": false,
@@ -320,6 +361,16 @@
           }
         ],
         "properties": {
+          "animation": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/EntranceAnimation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "frame": {
             "anyOf": [
               {
@@ -562,6 +613,10 @@
   "operation": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
+      "AnimationEasing": {
+        "enum": ["easeOut", "easeInOut", "linear"],
+        "type": "string"
+      },
       "Asset": {
         "additionalProperties": false,
         "properties": {
@@ -585,6 +640,43 @@
         },
         "required": ["data", "id", "mimeType"],
         "type": "object"
+      },
+      "EntranceAnimation": {
+        "additionalProperties": false,
+        "description": "Portable entrance effects; milliseconds are serialized, never executable Motion props.",
+        "properties": {
+          "delayMs": {
+            "default": 0.0,
+            "format": "double",
+            "maximum": 60000.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "durationMs": {
+            "default": 350.0,
+            "format": "double",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "easing": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/AnimationEasing"
+              }
+            ],
+            "default": "easeOut"
+          },
+          "effect": {
+            "$ref": "#/definitions/EntranceEffect"
+          }
+        },
+        "required": ["effect"],
+        "type": "object"
+      },
+      "EntranceEffect": {
+        "enum": ["fade", "rise", "slide", "zoom"],
+        "type": "string"
       },
       "Frame": {
         "additionalProperties": false,
@@ -897,6 +989,16 @@
           }
         ],
         "properties": {
+          "animation": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/EntranceAnimation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "frame": {
             "anyOf": [
               {
@@ -1111,6 +1213,47 @@
           },
           "type": {
             "enum": ["setFrame"],
+            "type": "string"
+          }
+        },
+        "required": ["nodeId", "type"],
+        "type": "object"
+      },
+      {
+        "properties": {
+          "animation": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/EntranceAnimation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "type": {
+            "enum": ["setAnimation"],
+            "type": "string"
+          }
+        },
+        "required": ["nodeId", "type"],
+        "type": "object"
+      },
+      {
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
+          "step": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": ["integer", "null"]
+          },
+          "type": {
+            "enum": ["setStep"],
             "type": "string"
           }
         },

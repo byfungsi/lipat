@@ -35,6 +35,7 @@ const deck=createDeck({id:'consumer',slides:[{id:'s',content:{id:'title',type:'h
 if(!deck.ok||!deck.value.compile().ok)throw new Error('Packed runtime failed');export const runtime=deck.value;
 for(const subpath of ['model','core','pptx','wasm','render','agent','reveal'])await import('@byfungsi/lipat/'+subpath);
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('react');throw new Error('React was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
+if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new Error('Motion was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 `,
   );
   execFileSync("node", ["consumer.mjs"], {
@@ -86,7 +87,7 @@ if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('react');throw new Er
   });
   if (
     Object.keys(result.metafile.inputs).some((p) =>
-      /react|wasm-engine|schemas.json/.test(p),
+      /react|motion|wasm-engine|schemas.json/.test(p),
     )
   )
     throw new Error("Narrow model import pulled unrelated features");
@@ -99,12 +100,13 @@ if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('react');throw new Er
       "--no-fund",
       "react@19",
       "react-dom@19",
+      "motion@^14.6.0",
     ],
     { cwd: folder, stdio: "pipe" },
   );
   writeFileSync(
     join(folder, "ssr.mjs"),
-    `import React from 'react';import {renderToString} from 'react-dom/server';import {DeckPreview} from '@byfungsi/lipat/react';import {runtime} from './consumer.mjs';if(!renderToString(React.createElement(DeckPreview,{deck:runtime})).includes('<svg'))throw new Error('Packed React SSR failed');console.log('Packed package: headless imports, declarations, optional React, bundling and SSR entry verified.');`,
+    `import React from 'react';import {renderToString} from 'react-dom/server';import {DeckPreview,DeckPlayer} from '@byfungsi/lipat/react';import {createMotionPlayback} from '@byfungsi/lipat/motion';import {runtime} from './consumer.mjs';if(!renderToString(React.createElement(DeckPreview,{deck:runtime})).includes('<svg'))throw new Error('Packed React SSR failed');if(!renderToString(React.createElement(DeckPlayer,{deck:runtime,playback:createMotionPlayback()})).includes('<svg'))throw new Error('Packed Motion SSR failed');console.log('Packed package: headless imports, declarations, optional React/Motion, bundling and SSR entry verified.');`,
   );
   execFileSync("node", ["ssr.mjs"], { cwd: folder, stdio: "inherit" });
 } finally {

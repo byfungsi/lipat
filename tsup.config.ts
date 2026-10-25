@@ -10,6 +10,7 @@ export default defineConfig({
     "src/agent.ts",
     "src/reveal.ts",
     "src/render.ts",
+    "src/motion.ts",
   ],
   format: ["esm"],
   target: "es2022",
@@ -19,7 +20,7 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   noExternal: [/^@lipat-internal\//],
-  external: ["react", "react/jsx-runtime"],
+  external: ["react", "react/jsx-runtime", "motion"],
   tsconfig: "../../tsconfig.json",
   onSuccess: async () => {
     const { copyFile } = await import("node:fs/promises");

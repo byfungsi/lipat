@@ -15,6 +15,8 @@ flowchart TD
   Lift --> Document
   Scene --> Render[SVG / React / HTML / reveal.js]
   Scene --> Export[PPTX writer]
+  Scene --> Playback[Optional browser playback adapter]
+  Playback --> Motion[Motion: SVG entrance effects]
 ```
 
 ## Source and output
@@ -56,3 +58,7 @@ Font metrics are explicit. The fallback is deterministic and warned, not a guara
 ## Identity ergonomics
 
 Wire identities remain strings in the TypeScript authoring contract so agents can generate plain JSON and preset functions can produce predictable IDs. Operations use named `nodeId`, `slideId` and `assetId` fields, and the native boundary validates uniqueness, references and target kinds. This is an intentional trade-off against nominally branded IDs in the public authoring input.
+
+## Animation boundary
+
+Entrance effects are serializable leaf-node instructions validated in Rust and carried into scenes. `SlidePlaybackDriver<Surface>` defines the lifecycle without importing a browser or animation library. The optional `/motion` adapter owns SVG transforms, timing, cancellation and reduced motion; React owns navigation and mounting. The static renderer and reveal adapter already own their output formats, so importing Motion into either would impose a browser/runtime dependency on headless consumers. A separate adapter keeps that dependency optional and supports vanilla browser hosts. PPTX timing is a separate translation problem; the writer reports animation flattening. See [animations](./animations.md).

@@ -35,7 +35,7 @@ export function createAgentTools(
     {
       name: "lipat_inspect",
       description:
-        "Read deck revision, stable slide/node identities and compact semantic content.",
+        "Read deck revision, stable slide/node identities, compact semantic content and explicit reveal steps/animations.",
       inputSchema: {
         type: "object",
         additionalProperties: false,

@@ -46,6 +46,12 @@ it("native and WASM produce byte-for-byte equal JSON layout and edit results", (
   );
   const operations = [
     {
+      type: "setAnimation" as const,
+      nodeId: "title",
+      animation: { effect: "zoom" as const, durationMs: 240, delayMs: 50 },
+    },
+    { type: "setStep" as const, nodeId: "title", step: 2 },
+    {
       type: "updateText" as const,
       nodeId: "title",
       text: "Same engine, different host",
@@ -53,5 +59,9 @@ it("native and WASM produce byte-for-byte equal JSON layout and edit results", (
   ];
   expect(native({ operation: "apply", document, operations })).toEqual(
     engine.applyDocument(document, operations),
+  );
+  const animated = unwrap(engine.applyDocument(document, operations));
+  expect(native({ operation: "compile", document: animated, options })).toEqual(
+    engine.compile(animated, options),
   );
 });

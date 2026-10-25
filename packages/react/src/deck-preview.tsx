@@ -1,7 +1,51 @@
-import { useMemo, useState, useSyncExternalStore } from "react";
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { ReactNode } from "react";
 import type { DeckRuntime } from "@lipat-internal/core";
 import { renderSlideSvg } from "@lipat-internal/render";
+import type {
+  SceneSlide,
+  SlideScene,
+  SlidePlaybackDriver,
+  SlidePlaybackController,
+} from "@lipat-internal/model";
+
+function AnimatedSlide({
+  scene,
+  slide,
+  step,
+  playback,
+}: {
+  readonly scene: SlideScene;
+  readonly slide: SceneSlide;
+  readonly step: number;
+  readonly playback: SlidePlaybackDriver<HTMLElement>;
+}): ReactNode {
+  const root = useRef<HTMLDivElement>(null);
+  const controller = useRef<SlidePlaybackController | null>(null);
+  const markup = useMemo(
+    () => renderSlideSvg(scene, slide.id, { step: 0, retainSteps: true }),
+    [scene, slide],
+  );
+  useLayoutEffect(() => {
+    if (!root.current) return;
+    const mounted = playback.mount(root.current, slide);
+    controller.current = mounted;
+    return () => {
+      mounted.destroy();
+      controller.current = null;
+    };
+  }, [playback, slide]);
+  useLayoutEffect(() => {
+    controller.current?.setStep(step);
+  }, [step, playback, slide]);
+  return <div ref={root} dangerouslySetInnerHTML={{ __html: markup }} />;
+}
 /** Read-only attachment preview owns local navigation and never changes runtime selection. */
 export function DeckPreview({
   deck,
@@ -56,8 +100,10 @@ export function DeckPreview({
 /** Browser player handles incremental steps separately from the authoring document. */
 export function DeckPlayer({
   deck,
+  playback,
 }: {
   readonly deck: DeckRuntime;
+  readonly playback?: SlidePlaybackDriver<HTMLElement>;
 }): ReactNode {
   const state = useSyncExternalStore(
     deck.subscribe,
@@ -102,11 +148,21 @@ export function DeckPlayer({
         }
       }}
     >
-      <div
-        dangerouslySetInnerHTML={{
-          __html: renderSlideSvg(scene, slide.id, { step }),
-        }}
-      />
+      {playback ? (
+        <AnimatedSlide
+          key={slide.id}
+          scene={scene}
+          slide={slide}
+          step={step}
+          playback={playback}
+        />
+      ) : (
+        <div
+          dangerouslySetInnerHTML={{
+            __html: renderSlideSvg(scene, slide.id, { step }),
+          }}
+        />
+      )}
       <nav>
         <button onClick={previous}>Previous</button>
         <span>

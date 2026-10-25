@@ -30,3 +30,5 @@ Use `readOnly` on the provider or convenience editor for navigable read-only con
 `DeckPreview` is a separate attachment card with local slide navigation and optional `title`, `theme` and `onOpen`. It never updates the full editor's active slide or selection. `DeckPlayer` uses local playback state, hides hidden slides, handles incremental steps and exposes notes. Theme props add data attributes; hosts supply application styling.
 
 Style `.lipat-editor`, `.lipat-tabs`, `.lipat-canvas`, `.lipat-inspector`, `.lipat-diagnostics`, `.lipat-preview`, `.lipat-player` and `[data-selected]`. Document formatting is rendered separately from application chrome. Use the demo stylesheet as an example.
+
+For optional entrance effects, pass `playback={createMotionPlayback()}` to `DeckPlayer` using a stable adapter instance. See [animations](./animations.md) for Motion setup, agent operations and output boundaries.

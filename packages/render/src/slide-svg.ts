@@ -50,7 +50,11 @@ function textSvg(element: Extract<SceneElement, { type: "text" }>): string {
     })
     .join("");
 }
-function elementSvg(element: SceneElement, scene: SlideScene): string {
+function elementSvg(
+  element: SceneElement,
+  scene: SlideScene,
+  hidden: boolean,
+): string {
   const f = element.frame;
   let body = "";
   switch (element.type) {
@@ -90,24 +94,35 @@ function elementSvg(element: SceneElement, scene: SlideScene): string {
       break;
     }
   }
-  return `<g data-node-id="${escapeSlideMarkup(element.id)}"${element.step !== undefined ? ` data-step="${element.step}"` : ""} transform="rotate(${f.rotation ?? 0} ${f.x + f.width / 2} ${f.y + f.height / 2})">${body}</g>`;
+  return `<g data-node-id="${escapeSlideMarkup(element.id)}"${element.step !== undefined ? ` data-step="${element.step}"` : ""} transform="rotate(${f.rotation ?? 0} ${f.x + f.width / 2} ${f.y + f.height / 2})"><g data-playback-id="${escapeSlideMarkup(element.id)}"${hidden ? ' style="visibility:hidden" aria-hidden="true"' : ""}>${body}</g></g>`;
 }
 /** Render a validated compiled/imported slide without a browser or React. */
 export function renderSlideSvg(
   scene: SlideScene,
   slideId: string,
-  options: { readonly title?: string; readonly step?: number } = {},
+  options: {
+    readonly title?: string;
+    readonly step?: number;
+    readonly retainSteps?: boolean;
+  } = {},
 ): string {
   const slide = scene.slides.find((s) => s.id === slideId);
   if (!slide) return "";
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${scene.size.width} ${scene.size.height}" role="img" aria-label="${escapeSlideMarkup(options.title ?? slide.title)}" style="display:block;width:100%;height:auto"><title>${escapeSlideMarkup(options.title ?? slide.title)}</title><rect width="100%" height="100%" fill="${escapeSlideMarkup(slide.background)}"/>${slide.elements
     .filter(
       (e) =>
+        options.retainSteps ||
         options.step === undefined ||
         e.step === undefined ||
         e.step <= options.step,
     )
-    .map((e) => elementSvg(e, scene))
+    .map((e) =>
+      elementSvg(
+        e,
+        scene,
+        options.step !== undefined && (e.step ?? 0) > options.step,
+      ),
+    )
     .join("")}</svg>`;
 }
 /** Export self-contained HTML with keyboard navigation, fragment steps, notes and print styling. */

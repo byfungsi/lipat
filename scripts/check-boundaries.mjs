@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 const allowed = {
   model: [],
+  motion: ["model"],
   core: ["model"],
   pptx: ["model"],
   wasm: ["model"],
@@ -11,6 +12,7 @@ const allowed = {
   reveal: ["model", "render"],
   lipat: [
     "model",
+    "motion",
     "core",
     "pptx",
     "wasm",
@@ -32,6 +34,11 @@ for (const [name, dependencies] of Object.entries(allowed)) {
     /\.tsx?$/.test(p),
   )) {
     const source = readFileSync(path, "utf8");
+    if (
+      !["motion", "lipat"].includes(name) &&
+      /from\s+["']motion(?:\/|["'])/.test(source)
+    )
+      throw new Error(`Motion dependency boundary violation: ${path}`);
     for (const match of source.matchAll(
       /from\s+["']@lipat-internal\/([^"']+)["']/g,
     )) {

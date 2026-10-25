@@ -291,6 +291,7 @@ impl Reader {
                             frame: f,
                             style: TextStyle::default(),
                             step: None,
+                            animation: None,
                             kind: SceneKind::Shape {
                                 geometry: geometry.into(),
                                 fill,
@@ -305,6 +306,7 @@ impl Reader {
                             frame: f,
                             style: style.clone(),
                             step: None,
+                            animation: None,
                             kind: SceneKind::Text {
                                 line_height: style.font_size.unwrap_or(24.) * 1.2,
                                 lines: text.split('\n').map(String::from).collect(),
@@ -338,6 +340,7 @@ impl Reader {
                                 frame: f,
                                 style: TextStyle::default(),
                                 step: None,
+                                animation: None,
                                 kind: SceneKind::Image {
                                     asset_id,
                                     alt: descendant(n, "cNvPr")
@@ -415,6 +418,7 @@ impl Reader {
                                     ..TextStyle::default()
                                 },
                                 step: None,
+                                animation: None,
                                 kind: SceneKind::Table {
                                     columns,
                                     rows: table_rows.into_iter().skip(1).collect(),

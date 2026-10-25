@@ -138,10 +138,13 @@ try {
     .locator(".lipat-player")
     .getByRole("button", { name: "Next" })
     .click();
+  const caption = page.locator(
+    '.lipat-player [data-playback-id="workflow-caption"]',
+  );
   if (
-    await page
-      .locator('.lipat-player [data-node-id="workflow-caption"]')
-      .count()
+    await caption.evaluate(
+      (element) => getComputedStyle(element).visibility !== "hidden",
+    )
   )
     throw new Error("Fragment was visible before its step");
   await page
@@ -149,11 +152,57 @@ try {
     .getByRole("button", { name: "Next" })
     .click();
   if (
-    !(await page
-      .locator('.lipat-player [data-node-id="workflow-caption"]')
-      .count())
+    await caption.evaluate(
+      (element) => getComputedStyle(element).visibility !== "visible",
+    )
   )
     throw new Error("Fragment did not become visible");
+  // Motion must have an actual in-flight entrance, not merely toggle visibility.
+  if (
+    await caption.evaluate(
+      (element) => Number(getComputedStyle(element).opacity) >= 1,
+    )
+  )
+    throw new Error("Motion entrance did not start");
+  await page.waitForFunction(() => {
+    const element = document.querySelector(
+      '.lipat-player [data-playback-id="workflow-caption"]',
+    );
+    return element && Number(getComputedStyle(element).opacity) === 1;
+  });
+  const player = page.locator(".lipat-player");
+  await player.getByRole("button", { name: "Previous" }).click();
+  if (
+    await caption.evaluate(
+      (element) => getComputedStyle(element).visibility !== "hidden",
+    )
+  )
+    throw new Error("Backward navigation did not hide the animated fragment");
+  await player.getByRole("button", { name: "Next" }).click();
+  await player.getByRole("button", { name: "Previous" }).click();
+  await player.getByRole("button", { name: "Next" }).click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForFunction(() => {
+    const element = document.querySelector(
+      '.lipat-player [data-playback-id="workflow-caption"]',
+    );
+    return (
+      element &&
+      getComputedStyle(element).transform === "none" &&
+      Number(getComputedStyle(element).opacity) === 1
+    );
+  });
+  await player.getByRole("button", { name: "Previous" }).click();
+  await player.getByRole("button", { name: "Next" }).click();
+  if (
+    await caption.evaluate(
+      (element) =>
+        getComputedStyle(element).transform !== "none" ||
+        Number(getComputedStyle(element).opacity) !== 1,
+    )
+  )
+    throw new Error("Reduced motion did not reveal immediately");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.getByRole("button", { name: "Editor", exact: true }).click();
   const downloaded = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export PPTX ↗" }).click();
@@ -188,6 +237,135 @@ try {
     () => document.documentElement.scrollWidth > window.innerWidth + 1,
   );
   if (overflow) throw new Error("Mobile demo overflows the viewport");
+  await page
+    .getByRole("button", { name: "Animation sample", exact: true })
+    .click();
+  await page.locator('.lipat-player [data-node-id="motion-title"]').waitFor();
+  const samplePlayer = page.locator(".lipat-player");
+  for (const effect of ["fade", "rise", "slide", "zoom"]) {
+    const target = samplePlayer.locator(
+      `[data-playback-id="motion-${effect}"]`,
+    );
+    if (
+      await target.evaluate(
+        (element) => getComputedStyle(element).visibility !== "hidden",
+      )
+    )
+      throw new Error("Animation sample revealed a future effect: " + effect);
+    await samplePlayer
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+    await page.waitForFunction((id) => {
+      const element = document.querySelector(
+        `[data-playback-id="motion-${id}"]`,
+      );
+      return (
+        element &&
+        getComputedStyle(element).visibility === "visible" &&
+        Number(getComputedStyle(element).opacity) === 1
+      );
+    }, effect);
+  }
+  await page
+    .getByRole("button", { name: "Animation sample", exact: true })
+    .click();
+  if (
+    await samplePlayer
+      .locator('[data-playback-id="motion-fade"]')
+      .evaluate((element) => getComputedStyle(element).visibility !== "hidden")
+  )
+    throw new Error("Loading the animation sample did not reset playback");
+  await page.goto("http://127.0.0.1:4178/?sample=animations");
+  await page.locator('.lipat-player [data-node-id="motion-title"]').waitFor();
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  for (let step = 0; step < 4; step++)
+    await page
+      .locator(".lipat-player")
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+  await page.waitForFunction(() => {
+    return ["fade", "rise", "slide", "zoom"].every((effect) => {
+      const element = document.querySelector(
+        `[data-playback-id="motion-${effect}"]`,
+      );
+      return (
+        element &&
+        getComputedStyle(element).visibility === "visible" &&
+        Number(getComputedStyle(element).opacity) === 1
+      );
+    });
+  });
+  await page.screenshot({
+    path: "artifacts/animation-playground.png",
+    fullPage: true,
+  });
+  // Author effects through the actual JSON UI and preserve static rotation on every entrance.
+  await page.getByRole("button", { name: "Document", exact: true }).click();
+  await page.getByRole("textbox", { name: "Deck document" }).fill(
+    JSON.stringify({
+      id: "motion-check",
+      slides: [
+        {
+          id: "effects",
+          content: {
+            id: "effects-canvas",
+            type: "canvas",
+            children: ["fade", "rise", "slide", "zoom"].map(
+              (effect, index) => ({
+                id: effect,
+                type: "shape",
+                fill: "#5B5BD6",
+                step: 1,
+                frame: {
+                  x: 50 + index * 180,
+                  y: 60,
+                  width: 100,
+                  height: 90,
+                  rotation: 27,
+                },
+                animation: { effect, durationMs: 250, delayMs: 80 },
+              }),
+            ),
+          },
+        },
+      ],
+    }),
+  );
+  await page
+    .getByRole("button", { name: "Apply document", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Present", exact: true }).click();
+  const rotations = await page
+    .locator(".lipat-player [data-node-id]")
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("transform")),
+    );
+  await page
+    .locator(".lipat-player")
+    .getByRole("button", { name: "Next" })
+    .click();
+  const zoom = page.locator('.lipat-player [data-playback-id="zoom"]');
+  if (
+    await zoom.evaluate(
+      (element) => getComputedStyle(element).transform === "none",
+    )
+  )
+    throw new Error("Zoom entrance did not transform its inner SVG group");
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll(".lipat-player [data-playback-id]")].every(
+      (element) => Number(getComputedStyle(element).opacity) === 1,
+    ),
+  );
+  const finalRotations = await page
+    .locator(".lipat-player [data-node-id]")
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("transform")),
+    );
+  if (
+    JSON.stringify(rotations) !== JSON.stringify(finalRotations) ||
+    !rotations.every((value) => value.startsWith("rotate(27 "))
+  )
+    throw new Error("Motion changed authored SVG rotation");
   if (errors.length) throw new Error(errors.join("\n"));
   docsServer = spawn(
     process.execPath,
@@ -251,7 +429,7 @@ try {
   });
   if (errors.length) throw new Error(errors.join("\n"));
   console.log(
-    "Chromium verified real WASM initialization, text/agent edits, drag/resize undo, local preview, fragments, PPTX download/reimport, independent upload and mobile layout.",
+    "Chromium verified WASM editing, history, previews, Motion entrances, interruption/reduced motion, SVG rotation, PPTX import/export, documentation and mobile layout.",
   );
 } finally {
   await browser?.close();

@@ -4,11 +4,14 @@ import { createLipat, createDeck, fromMarkdown } from "@byfungsi/lipat";
 import type { DeckInput, LipatEngine, LipatResult } from "@byfungsi/lipat";
 import { DeckEditor, DeckPreview, DeckPlayer } from "@byfungsi/lipat/react";
 import { renderDeckHtml } from "@byfungsi/lipat/render";
+import { createMotionPlayback } from "@byfungsi/lipat/motion";
 import { createAgentTools } from "@byfungsi/lipat/agent";
 import type { DeckRuntime } from "@byfungsi/lipat/core";
 import wasmUrl from "@byfungsi/lipat/lipat.wasm?url";
 import { sampleDeck } from "./sample-deck";
+import { animationDeck } from "./animation-deck";
 import "./style.css";
+const motionPlayback = createMotionPlayback();
 function download(data: BlobPart, name: string, type: string) {
   const url = URL.createObjectURL(new Blob([data], { type }));
   const a = document.createElement("a");
@@ -20,12 +23,15 @@ function download(data: BlobPart, name: string, type: string) {
 function App({
   engine,
   initial,
+  initialMode = "edit",
 }: {
   engine: LipatEngine;
   initial: DeckRuntime;
+  initialMode?: "edit" | "present";
 }) {
   const [deck, setDeck] = useState(initial),
-    [mode, setMode] = useState<"edit" | "present" | "source">("edit"),
+    [mode, setMode] = useState<"edit" | "present" | "source">(initialMode),
+    [playerSession, setPlayerSession] = useState(0),
     [error, setError] = useState(""),
     [source, setSource] = useState(
       JSON.stringify(initial.exportDocument(), null, 2),
@@ -38,6 +44,7 @@ function App({
     if (result.ok) {
       deck.dispose();
       setDeck(result.value);
+      setPlayerSession((session) => session + 1);
       setSource(JSON.stringify(result.value.exportDocument(), null, 2));
       setError("");
     } else setError(result.error.message);
@@ -152,6 +159,14 @@ function App({
                     : "Document"}
               </button>
             ))}
+            <button
+              onClick={() => {
+                replace(animationDeck);
+                setMode("present");
+              }}
+            >
+              Animation sample
+            </button>
           </nav>
         </div>
         {error ? (
@@ -166,7 +181,11 @@ function App({
           {mode === "edit" ? (
             <DeckEditor deck={deck} onError={(e) => setError(e.message)} />
           ) : mode === "present" ? (
-            <DeckPlayer deck={deck} />
+            <DeckPlayer
+              key={playerSession}
+              deck={deck}
+              playback={motionPlayback}
+            />
           ) : (
             <div className="source-panel">
               <label>
@@ -264,11 +283,20 @@ async function start() {
       throw new Error(`WASM request failed: ${response.status}`);
     const engine = createLipat(new Uint8Array(await response.arrayBuffer()));
     if (!engine.ok) throw new Error(engine.error.message);
-    const deck = createDeck(sampleDeck, { engine: engine.value });
+    const showAnimations =
+      new URLSearchParams(window.location.search).get("sample") ===
+      "animations";
+    const deck = createDeck(showAnimations ? animationDeck : sampleDeck, {
+      engine: engine.value,
+    });
     if (!deck.ok) throw new Error(deck.error.message);
     createRoot(root).render(
       <StrictMode>
-        <App engine={engine.value} initial={deck.value} />
+        <App
+          engine={engine.value}
+          initial={deck.value}
+          initialMode={showAnimations ? "present" : "edit"}
+        />
       </StrictMode>,
     );
   } catch (error) {

@@ -25,7 +25,7 @@ npm run verify
 npm run dev
 ```
 
-`npm run dev` builds the package and prints the Vite URL. The demo includes semantic editing, drag/resize and keyboard nudges, history, source JSON, Markdown/PPTX upload, presentation playback, an agent edit and a read-only attachment preview. The library ships no global CSS.
+`npm run dev` builds the package and prints the Vite URL. The demo includes semantic editing, drag/resize and keyboard nudges, history, source JSON, Markdown/PPTX upload, presentation playback, an agent edit and a read-only attachment preview. The library ships no global CSS. Choose **Animation sample** to try fade, rise, slide and zoom, or [open it directly](https://byfungsi.github.io/lipat/playground/index.html?sample=animations).
 
 ## Create and edit
 
@@ -116,26 +116,27 @@ Five provider-neutral tools implement inspect → edit → compile → preview �
 
 ## Public entrypoints
 
-| Import            | Responsibility                                                        |
-| ----------------- | --------------------------------------------------------------------- |
-| `@byfungsi/lipat` | WASM initialization, creation, presets, common types and PPTX helpers |
-| `/model`          | Portable document, scene, operation and diagnostic contracts          |
-| `/core`           | Runtime, history, subscriptions, presets and Markdown authoring       |
-| `/pptx`           | Independent PPTX byte adapter                                         |
-| `/wasm`           | Explicit Rust engine initialization                                   |
-| `/render`         | Headless SVG and self-contained HTML output                           |
-| `/react`          | Provider, hooks, canvas, inspector, editor, preview and player        |
-| `/agent`          | Tool definitions, execution and generated JSON schemas                |
-| `/reveal`         | Optional reveal.js-compatible markup and synchronization              |
-| `/lipat.wasm`     | Bundled binary asset, emitted/copied by the host's bundler            |
+| Import            | Responsibility                                                         |
+| ----------------- | ---------------------------------------------------------------------- |
+| `@byfungsi/lipat` | WASM initialization, creation, presets, common types and PPTX helpers  |
+| `/model`          | Portable document, scene, operation and diagnostic contracts           |
+| `/core`           | Runtime, history, subscriptions, presets and Markdown authoring        |
+| `/pptx`           | Independent PPTX byte adapter                                          |
+| `/wasm`           | Explicit Rust engine initialization                                    |
+| `/render`         | Headless SVG and self-contained HTML output                            |
+| `/motion`         | Optional Motion browser playback adapter (install `motion` separately) |
+| `/react`          | Provider, hooks, canvas, inspector, editor, preview and player         |
+| `/agent`          | Tool definitions, execution and generated JSON schemas                 |
+| `/reveal`         | Optional reveal.js-compatible markup and synchronization               |
+| `/lipat.wasm`     | Bundled binary asset, emitted/copied by the host's bundler             |
 
-ESM and TypeScript declarations are supplied. React 18.3/19 is an optional peer and is isolated to `/react`. The npm package has no runtime JavaScript dependencies. Source releases and documentation are published from the byfungsi/lipat repository.
+ESM and TypeScript declarations are supplied. React 18.3/19 and Motion 14.6+ are optional peers isolated to `/react` and `/motion`. The npm package has no runtime JavaScript dependencies. Source releases and documentation are published from the byfungsi/lipat repository.
 
 ## Architecture and compatibility
 
 Read [architecture](docs/architecture.md), [creation](docs/creation.md), [API](docs/api.md), [WASM and native usage](docs/wasm.md), [support and Nori parity](docs/support.md), [React](docs/react.md), [import/export](docs/pptx.md), and [verification](docs/verification.md).
 
-Flow layout uses deterministic font metrics. Defaults are approximate and reported as diagnostics; supply measured glyph widths for accurate wrapping. Browser font rasterization can differ from the compiler. Supported PPTX content includes ordinary text/runs, basic shapes, raster images, simple tables, notes, slide ordering and inherited placeholder geometry. Charts, SmartArt, media, animations and arbitrary lossless PPTX rewriting are outside this version. Import/export warnings make these boundaries visible.
+Flow layout uses deterministic font metrics. Defaults are approximate and reported as diagnostics; supply measured glyph widths for accurate wrapping. Browser font rasterization can differ from the compiler. Supported PPTX content includes ordinary text/runs, basic shapes, raster images, simple tables, notes, slide ordering and inherited placeholder geometry. Browser entrance effects are available through the optional [Motion adapter](docs/animations.md). Charts, SmartArt, media, native PPTX animations and arbitrary lossless PPTX rewriting are outside this version. Import/export warnings make these boundaries visible.
 
 ## Native Rust
 

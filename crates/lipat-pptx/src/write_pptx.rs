@@ -256,6 +256,14 @@ pub fn write_pptx(scene: &SlideScene) -> Result<ExportedPresentation> {
                     Some(e.id.clone()),
                 ));
             }
+            if e.animation.is_some() {
+                diagnostics.push(Diagnostic::warning(
+                    "unsupportedAnimationExport",
+                    "Browser entrance animations are flattened to their final state in PPTX export",
+                    Some(s.id.clone()),
+                    Some(e.id.clone()),
+                ));
+            }
         }
         if !s.notes.is_empty() {
             let n = i + 1;

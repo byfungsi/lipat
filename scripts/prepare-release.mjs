@@ -16,6 +16,8 @@ for (const path of [
   "dist/lipat.wasm",
   "dist/index.js",
   "dist/index.d.ts",
+  "dist/motion.js",
+  "dist/motion.d.ts",
   "README.md",
   "LICENSE",
 ])

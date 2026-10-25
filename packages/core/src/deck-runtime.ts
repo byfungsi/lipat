@@ -4,6 +4,7 @@ import type {
   CompileOutput,
   DeckDocument,
   DeckOperation,
+  EntranceAnimation,
   LipatEngine,
   LipatResult,
   SlideNode,
@@ -31,6 +32,8 @@ export interface DeckOutline {
       readonly type: SlideNode["type"];
       readonly text: string;
       readonly parentId: string | null;
+      readonly step?: number;
+      readonly animation?: EntranceAnimation;
     }[];
   }[];
 }
@@ -68,12 +71,7 @@ export interface DeckRuntime {
 function flatten(
   node: SlideNode,
   parentId: string | null,
-  output: {
-    id: string;
-    type: SlideNode["type"];
-    text: string;
-    parentId: string | null;
-  }[],
+  output: DeckOutline["slides"][number]["nodes"][number][],
   max: number,
 ): void {
   output.push({
@@ -81,6 +79,8 @@ function flatten(
     type: node.type,
     text: "children" in node ? "" : getNodeText(node).slice(0, max),
     parentId,
+    ...(node.step !== undefined ? { step: node.step } : {}),
+    ...(node.animation !== undefined ? { animation: node.animation } : {}),
   });
   if ("children" in node)
     for (const child of node.children) flatten(child, node.id, output, max);
