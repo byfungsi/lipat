@@ -1,6 +1,6 @@
 {
   "name": "@byfungsi/lipat-native",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Optional native Rust engine bridge for Lipat in Expo and React Native development builds",
   "type": "module",
   "sideEffects": false,
@@ -24,7 +24,7 @@
     "prepack": "node ../../scripts/check-native-package.mjs"
   },
   "peerDependencies": {
-    "@byfungsi/lipat": "^0.5.0",
+    "@byfungsi/lipat": "^0.6.0",
     "expo-modules-core": ">=3.0.0"
   },
   "license": "MIT",

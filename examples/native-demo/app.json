@@ -1,3 +1,15 @@
 {
- "expo":{"name":"Lipat Native","slug":"lipat-native","scheme":"lipat-native","version":"0.5.0","orientation":"default","ios":{"bundleIdentifier":"dev.byfungsi.lipatdemo","supportsTablet":true},"android":{"package":"dev.byfungsi.lipatdemo"},"newArchEnabled":true}
+  "expo": {
+    "name": "Lipat Native",
+    "slug": "lipat-native",
+    "scheme": "lipat-native",
+    "version": "0.6.0",
+    "orientation": "default",
+    "ios": {
+      "bundleIdentifier": "dev.byfungsi.lipatdemo",
+      "supportsTablet": true
+    },
+    "android": { "package": "dev.byfungsi.lipatdemo" },
+    "newArchEnabled": true
+  }
 }
