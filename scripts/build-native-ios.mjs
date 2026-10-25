@@ -53,7 +53,10 @@ execFileSync(
   { stdio: "inherit" },
 );
 mkdirSync("packages/lipat-native/native", { recursive: true });
-rmSync("packages/lipat-native/native/LipatNative.xcframework", {recursive:true,force:true});
+rmSync("packages/lipat-native/native/LipatNative.xcframework", {
+  recursive: true,
+  force: true,
+});
 cpSync(framework, "packages/lipat-native/native/LipatRustCore.xcframework", {
   recursive: true,
 });

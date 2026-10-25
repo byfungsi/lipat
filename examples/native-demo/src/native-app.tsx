@@ -29,6 +29,7 @@ function initialize() {
     }),
   );
   const deck = unwrap(createDeck(sampleDeck, { engine }));
+  unwrap(deck.apply([{ type: "setStep", nodeId: "intro", step: 1 }]));
   const scene = unwrap(deck.compile()).scene,
     output = unwrap(engine.writePptx(scene)),
     parsed = unwrap(engine.parsePptx(output.bytes));

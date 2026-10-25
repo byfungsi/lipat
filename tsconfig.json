@@ -21,6 +21,7 @@
       "@lipat-internal/wasm": ["./packages/wasm/src/index.ts"],
       "@lipat-internal/react": ["./packages/react/src/index.tsx"],
       "@byfungsi/lipat": ["./packages/lipat/src/index.ts"],
+      "@byfungsi/lipat-native": ["./packages/lipat-native/src/index.ts"],
       "@byfungsi/lipat/*": ["./packages/lipat/src/*"],
       "@lipat-internal/agent": ["./packages/agent/src/index.ts"],
       "@lipat-internal/reveal": ["./packages/reveal/src/index.ts"],

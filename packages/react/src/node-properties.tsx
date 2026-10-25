@@ -247,6 +247,85 @@ function PropertyForm({
                         Italic run
                       </label>
                       <label>
+                        <input
+                          type="checkbox"
+                          checked={run.style?.underline ?? false}
+                          onChange={(event) =>
+                            updateRun(index, {
+                              ...run,
+                              style: {
+                                ...run.style,
+                                underline: event.target.checked,
+                              },
+                            })
+                          }
+                        />
+                        Underline run
+                      </label>
+                      <label>
+                        Run font family
+                        <input
+                          value={run.style?.fontFamily ?? ""}
+                          placeholder="Inherited"
+                          onChange={(event) =>
+                            updateRun(index, {
+                              ...run,
+                              style: {
+                                ...run.style,
+                                fontFamily: event.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Run font size
+                        <input
+                          type="number"
+                          min={1}
+                          max={4000}
+                          value={run.style?.fontSize ?? ""}
+                          placeholder="Inherited"
+                          onChange={(event) => {
+                            const { fontSize: _, ...rest } = run.style ?? {};
+                            updateRun(index, {
+                              ...run,
+                              style: event.target.value
+                                ? {
+                                    ...run.style,
+                                    fontSize: Number(event.target.value),
+                                  }
+                                : rest,
+                            });
+                          }}
+                        />
+                      </label>
+                      <label>
+                        Run alignment
+                        <select
+                          value={run.style?.align ?? "left"}
+                          onChange={(event) =>
+                            updateRun(index, {
+                              ...run,
+                              style: {
+                                ...run.style,
+                                align: choice(
+                                  ["left", "center", "right", "justify"],
+                                  event.target.value,
+                                  "left",
+                                ),
+                              },
+                            })
+                          }
+                        >
+                          {["left", "center", "right", "justify"].map(
+                            (value) => (
+                              <option key={value}>{value}</option>
+                            ),
+                          )}
+                        </select>
+                      </label>
+                      <label>
                         Run color
                         <input
                           type="color"

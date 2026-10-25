@@ -37,15 +37,28 @@ try {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("http://127.0.0.1:4184/");
   await page.locator(".lipat-canvas svg").waitFor();
+  await page.evaluate(() => document.fonts.ready);
   const palette = page.getByRole("toolbar", { name: "Insert content" }),
     stage = page.locator(".lipat-canvas");
   await palette
     .getByRole("button", { name: "Add shape", exact: true })
     .dragTo(stage, { targetPosition: { x: 160, y: 100 } });
   const shape = page.getByRole("button", { name: /^Select lipat-shape-/ });
-  await shape.waitFor({timeout:5000}).catch(async error=>{
-    console.log("Editor drop diagnostics", await page.locator('[role=alert]').allTextContents(), await page.locator('[data-node-id]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-node-id'))));
-    await page.screenshot({path:'artifacts/editor-drop-failure.png',fullPage:true});throw error;
+  await shape.waitFor({ timeout: 5000 }).catch(async (error) => {
+    console.log(
+      "Editor drop diagnostics",
+      await page.locator("[role=alert]").allTextContents(),
+      await page
+        .locator("[data-node-id]")
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.getAttribute("data-node-id")),
+        ),
+    );
+    await page.screenshot({
+      path: "artifacts/editor-drop-failure.png",
+      fullPage: true,
+    });
+    throw error;
   });
   const id = (await shape.getAttribute("aria-label")).slice("Select ".length);
   await page

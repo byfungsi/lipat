@@ -91,6 +91,8 @@ export function NativeNodeProperties({
   const [gridColumns, setGridColumns] = useState(
     node.type === "grid" ? node.columns : 2,
   );
+  const updateRun = (index: number, run: TextRun) =>
+    setRuns(runs.map((item, i) => (i === index ? run : item)));
   const apply = () => {
     let updated: SlideNode = { ...node, style };
     if (node.type === "heading" || node.type === "text")
@@ -174,7 +176,10 @@ export function NativeNodeProperties({
           <NativeEditorButton
             label="Rich text runs"
             selected={rich}
-            onPress={() => setRich(!rich)}
+            onPress={() => {
+              setRich(!rich);
+              if (!rich && runs.length === 1) setRuns([{ text }]);
+            }}
           />
           {rich
             ? runs.map((run, index) => (
@@ -190,25 +195,77 @@ export function NativeNodeProperties({
                       )
                     }
                   />
-                  <NativeEditorButton
-                    label={`Run ${index + 1} bold`}
-                    selected={run.style?.bold ?? false}
-                    onPress={() =>
-                      setRuns(
-                        runs.map((item, i) =>
-                          i === index
-                            ? {
-                                ...item,
-                                style: {
-                                  ...item.style,
-                                  bold: !(item.style?.bold ?? false),
-                                },
-                              }
-                            : item,
-                        ),
-                      )
+                  <View style={nativeEditorStyles.bar}>
+                    {(["bold", "italic", "underline"] as const).map((key) => (
+                      <NativeEditorButton
+                        key={key}
+                        label={`Run ${index + 1} ${key}`}
+                        selected={run.style?.[key] ?? false}
+                        onPress={() =>
+                          updateRun(index, {
+                            ...run,
+                            style: {
+                              ...run.style,
+                              [key]: !(run.style?.[key] ?? false),
+                            },
+                          })
+                        }
+                      />
+                    ))}
+                  </View>
+                  <NativeEditorField
+                    label={`Run ${index + 1} font family`}
+                    value={run.style?.fontFamily ?? ""}
+                    onChange={(value) =>
+                      updateRun(index, {
+                        ...run,
+                        style: { ...run.style, fontFamily: value },
+                      })
                     }
                   />
+                  <NativeEditorField
+                    label={`Run ${index + 1} font size`}
+                    numeric
+                    value={String(
+                      run.style?.fontSize ??
+                        style.fontSize ??
+                        resolved?.style.fontSize ??
+                        document.theme.fontSize,
+                    )}
+                    onChange={(value) =>
+                      updateRun(index, {
+                        ...run,
+                        style: { ...run.style, fontSize: Number(value) },
+                      })
+                    }
+                  />
+                  <NativeEditorField
+                    label={`Run ${index + 1} color`}
+                    value={run.style?.color ?? style.color ?? "#172033"}
+                    onChange={(value) =>
+                      updateRun(index, {
+                        ...run,
+                        style: { ...run.style, color: value },
+                      })
+                    }
+                  />
+                  <View style={nativeEditorStyles.bar}>
+                    {(["left", "center", "right", "justify"] as const).map(
+                      (align) => (
+                        <NativeEditorButton
+                          key={align}
+                          label={`Run ${index + 1} ${align}`}
+                          selected={run.style?.align === align}
+                          onPress={() =>
+                            updateRun(index, {
+                              ...run,
+                              style: { ...run.style, align },
+                            })
+                          }
+                        />
+                      ),
+                    )}
+                  </View>
                   <NativeEditorButton
                     label={`Remove run ${index + 1}`}
                     disabled={runs.length === 1}
