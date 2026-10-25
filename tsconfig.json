@@ -38,5 +38,12 @@
     "types": ["node", "vitest/globals"]
   },
   "include": ["packages", "examples", "tests", "*.ts"],
-  "exclude": ["**/dist", "**/node_modules", "**/target"]
+  "exclude": [
+    "**/dist",
+    "**/node_modules",
+    "**/target",
+    "packages/lipat-native/native",
+    "examples/native-demo/ios",
+    "examples/native-demo/android"
+  ]
 }
