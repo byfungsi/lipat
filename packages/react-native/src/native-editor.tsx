@@ -45,6 +45,36 @@ export interface NativeDeckEditorProps {
   readonly onError?: (error: LipatError) => void;
   readonly style?: StyleProp<ViewStyle>;
 }
+function NativeSlideBackground({
+  deck,
+  slideId,
+  value,
+  report,
+}: {
+  readonly deck: DeckRuntime;
+  readonly slideId: string;
+  readonly value: string;
+  readonly report: (result: LipatResult<void>) => void;
+}): ReactNode {
+  const [draft, setDraft] = useState(value);
+  return (
+    <View style={nativeEditorStyles.panel}>
+      <NativeEditorField
+        label="Slide background"
+        value={draft}
+        onChange={setDraft}
+      />
+      <NativeEditorButton
+        label="Apply slide background"
+        onPress={() =>
+          report(
+            deck.apply([{ type: "updateSlide", slideId, background: draft }]),
+          )
+        }
+      />
+    </View>
+  );
+}
 function NativeEditorWorkspace({
   props,
   session,
@@ -392,20 +422,12 @@ function NativeEditorWorkspace({
                   )
                 }
               />
-              <NativeEditorField
-                label="Slide background"
+              <NativeSlideBackground
+                key={`${slide.id}-${slide.background ?? state.document.theme.background}`}
+                deck={deck}
+                slideId={slide.id}
                 value={slide.background ?? state.document.theme.background}
-                onChange={(value) =>
-                  report(
-                    deck.apply([
-                      {
-                        type: "updateSlide",
-                        slideId: slide.id,
-                        background: value,
-                      },
-                    ]),
-                  )
-                }
+                report={report}
               />
               <NativeEditorField
                 label="Speaker notes"
