@@ -25,9 +25,10 @@ jobs:
       - run: npm run schemas:generate && git diff --exit-code packages/agent/src/schemas.json
       - run: npx playwright install --with-deps chromium
       - run: npm run verify:browser
+        timeout-minutes: 5
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - run: pip install -r scripts/requirements-interop.txt
       - run: npm run verify:interop
       - uses: actions/upload-artifact@v4

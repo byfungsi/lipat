@@ -1,10 +1,22 @@
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright";
+import { fileURLToPath } from "node:url";
 const server = spawn(
-  "npm",
-  ["run", "preview", "-w", "@lipat/demo", "--", "--port", "4178"],
-  { stdio: ["ignore", "pipe", "pipe"] },
+  process.execPath,
+  [
+    fileURLToPath(new URL("../node_modules/vite/bin/vite.js", import.meta.url)),
+    "preview",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "4178",
+    "--strictPort",
+  ],
+  {
+    cwd: new URL("../examples/react-demo/", import.meta.url),
+    stdio: ["ignore", "pipe", "pipe"],
+  },
 );
 let browser;
 let docsServer;
@@ -177,9 +189,23 @@ try {
   );
   if (overflow) throw new Error("Mobile demo overflows the viewport");
   if (errors.length) throw new Error(errors.join("\n"));
-  docsServer = spawn("npm", ["run", "docs:preview"], {
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  docsServer = spawn(
+    process.execPath,
+    [
+      fileURLToPath(
+        new URL("../node_modules/vitepress/bin/vitepress.js", import.meta.url),
+      ),
+      "preview",
+      "docs",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "4179",
+    ],
+    {
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
   let docsLogs = "";
   docsServer.stdout.on("data", (chunk) => {
     docsLogs += chunk.toString();
@@ -229,6 +255,17 @@ try {
   );
 } finally {
   await browser?.close();
-  server.kill("SIGTERM");
-  docsServer?.kill("SIGTERM");
+  await Promise.all([stopServer(server), stopServer(docsServer)]);
+}
+
+async function stopServer(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise((resolve) => {
+    const timeout = setTimeout(() => child.kill("SIGKILL"), 5000);
+    child.once("exit", () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+    child.kill("SIGTERM");
+  });
 }
