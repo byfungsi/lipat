@@ -1,0 +1,39 @@
+{
+  "name": "@byfungsi/lipat-native",
+  "version": "0.5.0",
+  "description": "Optional native Rust engine bridge for Lipat in Expo and React Native development builds",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "native",
+    "expo-module.config.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/sync-native-addon.mjs && tsup --config tsup.config.ts"
+  },
+  "peerDependencies": {
+    "@byfungsi/lipat": "^0.5.0",
+    "expo-modules-core": ">=3.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/byfungsi/lipat.git",
+    "directory": "packages/lipat-native"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

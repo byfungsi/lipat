@@ -162,3 +162,9 @@ Version **0.4.0** adds `createLipatFromModule(module, {limits})` for precompiled
 `ScenePreview` and `ScenePlayer` from `/react` accept a `SlideScene` directly, with no authoring runtime or WASM initialization. They default to `imagePolicy="embedded-only"`. Existing runtime viewers accept the same policy. [Scene viewer guide](docs/react.md) · [Live sample](https://byfungsi.github.io/lipat/playground/scene.html).
 
 `npm run verify:workerd` tests the real restricted runtime; browser checks verify scene-only rendering without external fetches. Resource budgets bound admitted processing, not elapsed time or total heap usage; synchronous WASM cannot be interrupted by a JavaScript timer on the same thread.
+
+## Built-in editing and React Native
+
+The reusable `DeckEditor` adds content, slides, layers, rich properties, drag and drop, image workflows and animation controls. Supply `onSave` to persist the immutable document in your application, and `resolveImage` to upload/process images before inserting the final URL or embedded asset. Import the optional `@byfungsi/lipat/editor.css` skin. See [the editor guide](docs/editor.md).
+
+`@byfungsi/lipat/react-native` provides native preview/player/editor views. The optional `@byfungsi/lipat-native` add-on connects Expo/React Native development builds to the same Rust engine without requiring browser WASM in Hermes. Scene-only views need no engine. See [React Native setup](docs/react-native.md) and `examples/native-demo`.

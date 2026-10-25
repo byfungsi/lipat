@@ -2,17 +2,24 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 const allowed = {
   model: [],
+  "browser-playback": ["model"],
+  engine: ["model"],
+  native: ["engine", "model"],
   images: ["model"],
-  motion: ["model"],
+  motion: ["model", "browser-playback"],
   core: ["model"],
   pptx: ["model", "images"],
-  wasm: ["model"],
+  wasm: ["model", "engine"],
   render: ["model"],
   agent: ["core", "model", "render"],
-  react: ["core", "model", "render"],
+  react: ["core", "model", "render", "browser-playback"],
+  "react-native": ["core", "model", "render"],
   reveal: ["model", "render"],
   lipat: [
     "model",
+    "engine",
+    "native",
+    "react-native",
     "images",
     "motion",
     "core",
@@ -50,7 +57,7 @@ for (const [name, dependencies] of Object.entries(allowed)) {
         );
     }
     if (
-      !["react", "wasm", "lipat"].includes(name) &&
+      !["react", "react-native", "wasm", "lipat"].includes(name) &&
       /from\s+["'](?:react|node:)/.test(source)
     )
       throw new Error(`Headless boundary violation: ${path}`);

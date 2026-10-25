@@ -1,0 +1,9 @@
+apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
+group = 'dev.byfungsi.lipat'
+version = '0.5.0'
+android {
+  namespace 'expo.modules.lipat'
+  defaultConfig { minSdkVersion 24 }
+  sourceSets { main { jniLibs.srcDirs = ['src/main/jniLibs'] } }
+}

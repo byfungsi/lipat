@@ -5,6 +5,12 @@ use serde::{Deserialize, Serialize};
 #[derive(JsonSchema, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Operation {
+    UpdateDocument {
+        #[serde(default)]
+        title: Option<String>,
+        #[serde(default)]
+        size: Option<Size>,
+    },
     UpdateText {
         #[serde(rename = "nodeId")]
         node_id: String,
@@ -343,6 +349,14 @@ pub fn apply_operations_with_limits(
                 }
                 if let Some(v) = hidden {
                     s.hidden = *v;
+                }
+            }
+            Operation::UpdateDocument { title, size } => {
+                if let Some(title) = title {
+                    next.title = title.clone();
+                }
+                if let Some(size) = size {
+                    next.size = *size;
                 }
             }
             Operation::SetTheme { theme } => next.theme = theme.clone(),

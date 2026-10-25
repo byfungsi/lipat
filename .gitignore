@@ -12,3 +12,11 @@ artifacts/
 docs/public/
 tools/pptx-validator/bin/
 tools/pptx-validator/obj/
+
+packages/lipat/native/
+
+packages/lipat-native/native/
+
+examples/native-demo/ios/
+examples/native-demo/android/
+examples/native-demo/.expo/

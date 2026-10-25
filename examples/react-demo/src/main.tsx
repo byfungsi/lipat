@@ -13,6 +13,7 @@ import wasmUrl from "@byfungsi/lipat/lipat.wasm?url";
 import { sampleDeck } from "./sample-deck";
 import { animationDeck } from "./animation-deck";
 import "./style.css";
+import "@byfungsi/lipat/editor.css";
 const motionPlayback = createMotionPlayback();
 const imageLoader = createImageLoader(fetch);
 const sampleImageUrl = new URL("images/fold.png", window.location.href).href;
@@ -210,7 +211,18 @@ function App({
         ) : null}
         <section className="studio">
           {mode === "edit" ? (
-            <DeckEditor deck={deck} onError={(e) => setError(e.message)} />
+            <DeckEditor
+              deck={deck}
+              playback={motionPlayback}
+              onSave={(document) => {
+                download(
+                  JSON.stringify(document, null, 2),
+                  "presentation.lipat.json",
+                  "application/json",
+                );
+              }}
+              onError={(e) => setError(e.message)}
+            />
           ) : mode === "present" ? (
             <DeckPlayer
               key={playerSession}

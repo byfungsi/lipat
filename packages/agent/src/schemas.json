@@ -1099,6 +1099,21 @@
         "required": ["id"],
         "type": "object"
       },
+      "Size": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "format": "double",
+            "type": "number"
+          },
+          "width": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": ["height", "width"],
+        "type": "object"
+      },
       "Slide": {
         "additionalProperties": false,
         "properties": {
@@ -1234,6 +1249,31 @@
       }
     },
     "oneOf": [
+      {
+        "properties": {
+          "size": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Size"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "title": {
+            "default": null,
+            "type": ["string", "null"]
+          },
+          "type": {
+            "enum": ["updateDocument"],
+            "type": "string"
+          }
+        },
+        "required": ["type"],
+        "type": "object"
+      },
       {
         "properties": {
           "nodeId": {

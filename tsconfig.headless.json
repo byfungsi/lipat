@@ -12,6 +12,8 @@
     "packages/pptx",
     "packages/render",
     "packages/agent",
-    "packages/reveal"
+    "packages/reveal",
+    "packages/engine",
+    "packages/native"
   ]
 }

@@ -1,11 +1,12 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ReactNode, PointerEvent } from "react";
-import { renderSlideSvg } from "@lipat-internal/render";
+import { renderSceneElementSvg, renderSlideSvg } from "@lipat-internal/render";
 import type {
+  DeckOperation,
   ElementFrame,
   LipatError,
   SceneElement,
-  SlideNode,
+  SlideScene,
 } from "@lipat-internal/model";
 import {
   useDeck,
@@ -13,16 +14,46 @@ import {
   useDeckScene,
   useDeckState,
 } from "./deck-context";
-function findNode(node: SlideNode, id: string): SlideNode | undefined {
-  if (node.id === id) return node;
-  if ("children" in node)
-    for (const c of node.children) {
-      const found = findNode(c, id);
-      if (found) return found;
-    }
-  return undefined;
+function DraggedPrimitive({
+  scene,
+  element,
+  frame,
+  mode,
+}: {
+  readonly scene: SlideScene;
+  readonly element: SceneElement;
+  readonly frame: ElementFrame;
+  readonly mode: "move" | "resize";
+}): ReactNode {
+  const width = mode === "resize" ? frame.width : element.frame.width,
+    height = mode === "resize" ? frame.height : element.frame.height;
+  const markup = useMemo(
+    () =>
+      renderSceneElementSvg(
+        scene,
+        { ...element, frame: { ...element.frame, width, height } },
+        { imagePolicy: "allow-external" },
+      ),
+    [scene, element, width, height],
+  );
+  return (
+    <div
+      style={{ width: "100%", height: "100%", pointerEvents: "none" }}
+      dangerouslySetInnerHTML={{ __html: markup }}
+    />
+  );
 }
-/** Slide canvas supports selection, keyboard nudges and one history entry per drag/resize gesture. */
+interface CanvasGesture {
+  readonly slideId: string;
+  readonly ids: readonly string[];
+  readonly x: number;
+  readonly y: number;
+  readonly mode: "move" | "resize";
+  readonly scale: number;
+  readonly revision: number;
+  readonly rotation: number;
+}
+/** Slide canvas supports touch/pointer selection, multi-element movement and one history entry per drag or resize. */
 export function SlideCanvas({
   className,
   onError,
@@ -36,55 +67,70 @@ export function SlideCanvas({
     readOnly = useDeckReadOnly(),
     state = useDeckState(),
     compiled = useDeckScene();
-  const surface = useRef<HTMLDivElement>(null);
-  const gesture = useRef<{
-    id: string;
-    x: number;
-    y: number;
-    frame: ElementFrame;
-    mode: "move" | "resize";
-    scale: number;
-    revision: number;
-  } | null>(null);
+  const surface = useRef<HTMLDivElement>(null),
+    gesture = useRef<CanvasGesture | null>(null);
   const [offset, setOffset] = useState<{
-    id: string;
-    dx: number;
-    dy: number;
-    mode: "move" | "resize";
+    readonly ids: readonly string[];
+    readonly dx: number;
+    readonly dy: number;
+    readonly mode: "move" | "resize";
   } | null>(null);
+  const scene = compiled.ok ? compiled.value.scene : undefined;
+  const slide = scene?.slides.find((item) => item.id === state.activeSlideId);
+  const movingIds = offset?.ids;
+  const baseMarkup = useMemo(() => {
+    if (!scene || !slide) return "";
+    const rendered = movingIds
+      ? {
+          ...scene,
+          slides: scene.slides.map((item) =>
+            item.id === slide.id
+              ? {
+                  ...item,
+                  elements: item.elements.filter(
+                    (element) => !movingIds.includes(element.id),
+                  ),
+                }
+              : item,
+          ),
+        }
+      : scene;
+    return renderSlideSvg(rendered, slide.id);
+  }, [scene, slide, movingIds]);
   if (!compiled.ok) return <p role="alert">{compiled.error.message}</p>;
-  const scene = compiled.value.scene,
-    slide = scene.slides.find((s) => s.id === state.activeSlideId);
-  if (!slide) return null;
-  const source = state.document.slides.find((s) => s.id === slide.id);
-  const apply = (
-    element: SceneElement,
+  if (!scene || !slide) return null;
+  const changeFrame = (
+    frame: ElementFrame,
+    dx: number,
+    dy: number,
+    mode: "move" | "resize",
+  ): ElementFrame =>
+    mode === "move"
+      ? { ...frame, x: frame.x + dx, y: frame.y + dy }
+      : {
+          ...frame,
+          width: Math.max(1, frame.width + dx),
+          height: Math.max(1, frame.height + dy),
+        };
+  const commit = (
+    ids: readonly string[],
     dx: number,
     dy: number,
     mode: "move" | "resize",
     revision: number,
   ) => {
-    const node = source ? findNode(source.content, element.id) : undefined;
-    if (!node) return;
-    const f = node.frame ?? {
-      x: 0,
-      y: 0,
-      width: element.frame.width,
-      height: element.frame.height,
-      rotation: element.frame.rotation ?? 0,
-    };
-    const frame =
-      mode === "move"
-        ? { ...f, x: f.x + dx, y: f.y + dy }
-        : {
-            ...f,
-            width: Math.max(1, f.width + dx),
-            height: Math.max(1, f.height + dy),
-          };
-    const result = deck.apply(
-      [{ type: "setFrame", nodeId: element.id, frame }],
-      { expectedRevision: revision },
-    );
+    if (readOnly) return;
+    const operations: DeckOperation[] = slide.elements
+      .filter((element) => ids.includes(element.id))
+      .map((element) => ({
+        type: "setFrame",
+        nodeId: element.id,
+        frame: changeFrame(element.frame, dx, dy, mode),
+      }));
+    if (!operations.length) return;
+    const result = deck.applyToCanvas(slide.id, operations, {
+      expectedRevision: revision,
+    });
     if (!result.ok) onError?.(result.error);
   };
   const start = (
@@ -92,25 +138,49 @@ export function SlideCanvas({
     element: SceneElement,
     mode: "move" | "resize",
   ) => {
-    if (readOnly) return;
+    if (readOnly || event.button !== 0) return;
     event.preventDefault();
-    const selection = event.shiftKey
-      ? [...state.selection, element.id]
-      : [element.id];
-    const r = deck.setSelection(selection);
-    if (!r.ok) onError?.(r.error);
+    const selection =
+      mode === "resize"
+        ? [element.id]
+        : event.shiftKey
+          ? [...new Set([...state.selection, element.id])]
+          : state.selection.includes(element.id)
+            ? state.selection
+            : [element.id];
+    const result = deck.setSelection(selection);
+    if (!result.ok) {
+      onError?.(result.error);
+      return;
+    }
     const width =
       surface.current?.getBoundingClientRect().width ?? scene.size.width;
     gesture.current = {
-      id: element.id,
+      slideId: slide.id,
+      ids: selection,
       x: event.clientX,
       y: event.clientY,
-      frame: element.frame,
       mode,
-      scale: scene.size.width / width,
+      scale: scene.size.width / Math.max(1, width),
       revision: state.revision,
+      rotation: element.frame.rotation ?? 0,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const delta = (event: PointerEvent<HTMLElement>, g: CanvasGesture) => {
+    const x = (event.clientX - g.x) * g.scale,
+      y = (event.clientY - g.y) * g.scale,
+      angle = (g.rotation * Math.PI) / 180;
+    return g.mode === "resize"
+      ? {
+          dx: x * Math.cos(angle) + y * Math.sin(angle),
+          dy: -x * Math.sin(angle) + y * Math.cos(angle),
+        }
+      : { dx: x, dy: y };
+  };
+  const cancel = () => {
+    gesture.current = null;
+    setOffset(null);
   };
   return (
     <div
@@ -123,39 +193,36 @@ export function SlideCanvas({
       }}
       onPointerMove={(event) => {
         const g = gesture.current;
-        if (g)
-          setOffset({
-            id: g.id,
-            dx: (event.clientX - g.x) * g.scale,
-            dy: (event.clientY - g.y) * g.scale,
-            mode: g.mode,
-          });
+        if (g && !readOnly)
+          setOffset({ ids: g.ids, ...delta(event, g), mode: g.mode });
       }}
       onPointerUp={(event) => {
         const g = gesture.current;
-        gesture.current = null;
-        setOffset(null);
-        if (g) {
-          const e = slide.elements.find((e) => e.id === g.id);
-          const dx = (event.clientX - g.x) * g.scale,
-            dy = (event.clientY - g.y) * g.scale;
-          if (e && (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1))
-            apply(e, dx, dy, g.mode, g.revision);
+        cancel();
+        if (g && g.slideId === slide.id) {
+          const { dx, dy } = delta(event, g);
+          if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1)
+            commit(g.ids, dx, dy, g.mode, g.revision);
         }
       }}
-      onPointerCancel={() => {
-        gesture.current = null;
-        setOffset(null);
+      onPointerCancel={cancel}
+      onLostPointerCapture={cancel}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") cancel();
       }}
     >
       <div
-        dangerouslySetInnerHTML={{ __html: renderSlideSvg(scene, slide.id) }}
+        dangerouslySetInnerHTML={{
+          __html: baseMarkup,
+        }}
       />
       {!readOnly
         ? slide.elements.map((element) => {
-            const f = element.frame,
-              selected = state.selection.includes(element.id);
-            const delta = offset?.id === element.id ? offset : null;
+            const selected = state.selection.includes(element.id),
+              d = offset?.ids.includes(element.id) ? offset : null,
+              f = d
+                ? changeFrame(element.frame, d.dx, d.dy, d.mode)
+                : element.frame;
             return (
               <div
                 key={element.id}
@@ -176,53 +243,83 @@ export function SlideCanvas({
                 data-selected={selected || undefined}
                 style={{
                   position: "absolute",
-                  left: `${((f.x + (delta?.mode === "move" ? delta.dx : 0)) / scene.size.width) * 100}%`,
-                  top: `${((f.y + (delta?.mode === "move" ? delta.dy : 0)) / scene.size.height) * 100}%`,
-                  width: `${((f.width + (delta?.mode === "resize" ? delta.dx : 0)) / scene.size.width) * 100}%`,
-                  height: `${((f.height + (delta?.mode === "resize" ? delta.dy : 0)) / scene.size.height) * 100}%`,
+                  left: `${(f.x / scene.size.width) * 100}%`,
+                  top: `${(f.y / scene.size.height) * 100}%`,
+                  width: `${(f.width / scene.size.width) * 100}%`,
+                  height: `${(f.height / scene.size.height) * 100}%`,
+                  transform: `rotate(${f.rotation ?? 0}deg)`,
                   boxSizing: "border-box",
-                  border: selected
-                    ? "2px solid #5B5BD6"
-                    : "2px solid transparent",
+                  outline: selected ? "2px solid #5B5BD6" : "none",
+                  outlineOffset: -2,
                   cursor: "move",
+                  touchAction: "none",
                 }}
-                onPointerDown={(e) => start(e, element, "move")}
+                onPointerDown={(event) => start(event, element, "move")}
                 onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    gesture.current = null;
-                    setOffset(null);
-                    return;
-                  }
-                  const amount = event.shiftKey ? 10 : 1;
-                  const delta =
-                    event.key === "ArrowLeft"
-                      ? [-amount, 0]
-                      : event.key === "ArrowRight"
-                        ? [amount, 0]
-                        : event.key === "ArrowUp"
-                          ? [0, -amount]
-                          : event.key === "ArrowDown"
-                            ? [0, amount]
-                            : null;
-                  if (delta) {
+                  if (event.target !== event.currentTarget) return;
+                  const amount = event.shiftKey ? 10 : 1,
+                    dx =
+                      event.key === "ArrowLeft"
+                        ? -amount
+                        : event.key === "ArrowRight"
+                          ? amount
+                          : 0,
+                    dy =
+                      event.key === "ArrowUp"
+                        ? -amount
+                        : event.key === "ArrowDown"
+                          ? amount
+                          : 0;
+                  if (dx || dy) {
                     event.preventDefault();
-                    apply(
-                      element,
-                      delta[0] ?? 0,
-                      delta[1] ?? 0,
+                    commit(
+                      state.selection.includes(element.id)
+                        ? state.selection
+                        : [element.id],
+                      dx,
+                      dy,
                       "move",
                       state.revision,
                     );
                   }
                 }}
               >
+                {d ? (
+                  <DraggedPrimitive
+                    scene={scene}
+                    element={element}
+                    frame={f}
+                    mode={d.mode}
+                  />
+                ) : null}
                 {renderElement?.(element)}
                 {selected ? (
                   <button
+                    type="button"
                     aria-label={`Resize ${element.id}`}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      start(e, element, "resize");
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                      start(event, element, "resize");
+                    }}
+                    onKeyDown={(event) => {
+                      const amount = event.shiftKey ? 10 : 1,
+                        dx =
+                          event.key === "ArrowLeft"
+                            ? -amount
+                            : event.key === "ArrowRight"
+                              ? amount
+                              : 0,
+                        dy =
+                          event.key === "ArrowUp"
+                            ? -amount
+                            : event.key === "ArrowDown"
+                              ? amount
+                              : 0;
+                      if (dx || dy) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        commit([element.id], dx, dy, "resize", state.revision);
+                      }
                     }}
                     style={{
                       position: "absolute",
@@ -232,6 +329,7 @@ export function SlideCanvas({
                       height: 12,
                       padding: 0,
                       cursor: "nwse-resize",
+                      touchAction: "none",
                       background: "#5B5BD6",
                       border: "1px solid white",
                     }}

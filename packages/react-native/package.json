@@ -1,0 +1,17 @@
+{
+  "name": "@lipat-internal/react-native",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@lipat-internal/model": "*",
+    "@lipat-internal/core": "*",
+    "@lipat-internal/render": "*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-native": ">=0.81.0",
+    "react-native-svg": ">=15.12.0"
+  }
+}

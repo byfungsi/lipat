@@ -50,6 +50,12 @@ export interface DeckRuntime {
     operations: readonly DeckOperation[],
     options?: { readonly expectedRevision?: number },
   ): LipatResult<void>;
+  /** Freeze one semantic slide to its resolved canvas and apply edits in a single undoable transaction. */
+  applyToCanvas(
+    slideId: string,
+    operations: readonly DeckOperation[],
+    options?: { readonly expectedRevision?: number },
+  ): LipatResult<void>;
   /** Compile without changing the document or navigation state. */
   compile(options?: CompileOptions): LipatResult<CompileOutput>;
   /** Return IDs and compact text; optionally restrict to one slide. */
@@ -187,6 +193,73 @@ export function createDeck(
         future.length = 0;
         commit(next.value);
         return check;
+      },
+      applyToCanvas(slideId, operations, applyOptions = {}) {
+        const check = alive();
+        if (!check.ok) return check;
+        const slide = state.document.slides.find((item) => item.id === slideId);
+        if (!slide)
+          return {
+            ok: false,
+            error: {
+              reason: "invalidSelection",
+              message: "Canvas slide does not exist",
+            },
+          };
+        if (
+          slide.content.type === "canvas" &&
+          slide.content.children.every((node) => !("children" in node))
+        )
+          return this.apply(operations, applyOptions);
+        const compiled = options.engine.compile(state.document);
+        if (!compiled.ok) return compiled;
+        const resolved = compiled.value.scene.slides.find(
+          (item) => item.id === slideId,
+        );
+        if (!resolved)
+          return {
+            ok: false,
+            error: {
+              reason: "invalidSelection",
+              message: "Canvas slide has no resolved scene",
+            },
+          };
+        const imported = options.engine.importScene({
+          ...compiled.value.scene,
+          slides: [resolved],
+        });
+        if (!imported.ok) return imported;
+        const content = imported.value.slides[0]?.content;
+        if (!content)
+          throw new Error(
+            "Canvas conversion invariant failed: missing imported slide",
+          );
+        // A leaf root also appears in the resolved primitives: its new container needs a distinct ID.
+        const ids = new Set(
+          this.inspect().slides.flatMap((item) =>
+            item.nodes.map((node) => node.id),
+          ),
+        );
+        let rootId = `${slide.id}-editor-canvas`;
+        while (ids.has(rootId)) rootId += "-1";
+        return this.apply(
+          [
+            { type: "deleteSlide", slideId },
+            {
+              type: "insertSlide",
+              index: state.document.slides.indexOf(slide),
+              slide: { ...slide, content: { ...content, id: rootId } },
+            },
+            ...operations.map((operation) =>
+              (operation.type === "insertNode" ||
+                operation.type === "moveNode") &&
+              operation.parentId === slide.content.id
+                ? { ...operation, parentId: rootId }
+                : operation,
+            ),
+          ],
+          applyOptions,
+        );
       },
       compile(compileOptions) {
         const check = alive();

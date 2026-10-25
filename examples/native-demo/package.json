@@ -1,0 +1,23 @@
+{
+  "name": "@lipat/native-demo",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "ios": "expo run:ios",
+    "android": "expo run:android"
+  },
+  "dependencies": {
+    "@byfungsi/lipat": "*",
+    "@byfungsi/lipat-native": "*",
+    "expo": "58.0.19",
+    "expo-dev-client": "~58.0.15",
+    "expo-file-system": "~58.0.11",
+    "expo-image-picker": "~58.0.10",
+    "expo-modules-core": "58.0.26",
+    "react": "^19.3.0",
+    "react-native": "0.88.0",
+    "react-native-svg": "15.16.0"
+  }
+}

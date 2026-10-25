@@ -1,0 +1,11 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["LipatModule"],
+    "podspecPath": "native/Lipat.podspec"
+  },
+  "android": {
+    "modules": ["expo.modules.lipat.LipatModule"],
+    "path": "native/android"
+  }
+}

@@ -78,3 +78,11 @@ The WASM adapter owns ABI validation, request/response memory and typed Results.
 `ScenePreview` and `ScenePlayer` own immutable scene navigation/rendering without an authoring dependency. Runtime-based viewers compile once per document revision and delegate to them. Keeping scene presentation separate from the runtime wrappers avoids reconstructing authoring documents for stored artifacts. Image-resource policy belongs to the shared SVG renderer, so React, HTML and reveal output enforce the same restriction.
 
 `ResourceLimits` belongs to the native model. It is supplied explicitly to document validation, operations, layout and PPTX parsing; native/WASM requests use the same bounds. The private PPTX package context carries its limits into XML/relationship readers, preventing an inherited or auxiliary XML part from silently bypassing the host budget. There is no thread-local/global limit policy and no duplicate JavaScript layout/parser. See [limits](./limits.md).
+
+## Editor sessions and native mobile
+
+The headless editor session owns asynchronous save/image task lifetimes, cancellation and unsaved-snapshot tracking. The runtime remains the sole owner of documents, revisions and atomic history. Reusing only the previous text inspector would duplicate this task coordination in browser/native hosts; the session makes those semantics shared without owning a database or network client. Host callbacks are capabilities, not storage-specific Adapters.
+
+WASM and native mobile transports share one JSON/byte protocol implementation in the internal engine package. WASM owns memory-buffer allocation; the optional native add-on owns Expo/Swift/Kotlin/JNI and pointer-sized Rust ABI mechanics. Copying the WASM bridge into a mobile host was rejected because Hermes need not implement WebAssembly and 64-bit pointers cannot use its packed WASM32 ABI. Native scenes share SVG rendering/image policy, while UI and playback mechanics stay platform-specific.
+
+The optional native package carries platform binaries and autolinking metadata. The main package retains isolated model/core/web/Worker entrypoints and optional native UI peers. This split prevents iOS/Android static libraries from inflating every browser/Worker install.

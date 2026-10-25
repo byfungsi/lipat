@@ -26,7 +26,13 @@
       "@lipat-internal/reveal": ["./packages/reveal/src/index.ts"],
       "@lipat-internal/render": ["./packages/render/src/index.ts"],
       "@lipat-internal/motion": ["./packages/motion/src/index.ts"],
-      "@lipat-internal/images": ["./packages/images/src/index.ts"]
+      "@lipat-internal/images": ["./packages/images/src/index.ts"],
+      "@lipat-internal/engine": ["./packages/engine/src/index.ts"],
+      "@lipat-internal/native": ["./packages/native/src/index.ts"],
+      "@lipat-internal/react-native": ["./packages/react-native/src/index.ts"],
+      "@lipat-internal/browser-playback": [
+        "./packages/browser-playback/src/index.ts"
+      ]
     },
     "types": ["node", "vitest/globals"]
   },

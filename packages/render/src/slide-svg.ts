@@ -143,6 +143,17 @@ function elementSvg(
   }
   return `<g data-node-id="${escapeSlideMarkup(element.id)}"${element.step !== undefined ? ` data-step="${numberValue(element.step)}"` : ""} transform="rotate(${f.rotation ?? 0} ${f.x + f.width / 2} ${f.y + f.height / 2})"><g data-playback-id="${escapeSlideMarkup(element.id)}"${hidden ? ' style="visibility:hidden" aria-hidden="true"' : ""}>${body}</g></g>`;
 }
+/** Render one primitive in its own viewport; the host owns global position, rotation and animation around its center. */
+export function renderSceneElementSvg(
+  scene: SlideScene,
+  element: SceneElement,
+  options: { readonly imagePolicy?: ImageRenderPolicy } = {},
+): string {
+  const frame = renderFrame(element.frame);
+  // A native host owns positioning, rotation and animation around this primitive's own center.
+  const primitive = { ...element, frame: { ...frame, rotation: 0 } };
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${frame.x} ${frame.y} ${Math.max(1, frame.width)} ${Math.max(1, frame.height)}">${elementSvg(primitive, scene, false, options.imagePolicy ?? "embedded-only")}</svg>`;
+}
 /** Render a validated compiled/imported slide without a browser or React. */
 export function renderSlideSvg(
   scene: SlideScene,

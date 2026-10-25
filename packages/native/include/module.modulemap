@@ -1,0 +1,4 @@
+module LipatRustCore {
+  header "LipatRustCore.h"
+  export *
+}

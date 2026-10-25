@@ -2,6 +2,10 @@ import { defineConfig } from "vitest/config";
 import { resolve } from "node:path";
 const names = [
   "model",
+  "browser-playback",
+  "engine",
+  "native",
+  "react-native",
   "core",
   "pptx",
   "react",

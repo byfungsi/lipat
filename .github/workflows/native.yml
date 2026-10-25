@@ -1,0 +1,27 @@
+name: Build native engine
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+      - run: npm run build:native:android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lipat-android-engine
+          path: packages/lipat-native/native/android/src/main/jniLibs/
+          if-no-files-found: error

@@ -23,6 +23,8 @@ export default defineConfig({
           { text: "Playground", link: "/playground" },
           { text: "Agent authoring", link: "/agents" },
           { text: "React", link: "/react" },
+          { text: "Built-in editor", link: "/editor" },
+          { text: "React Native", link: "/react-native" },
           { text: "Animations", link: "/animations" },
           { text: "Images and URLs", link: "/images" },
           { text: "PPTX import/export", link: "/pptx" },

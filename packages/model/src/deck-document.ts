@@ -262,6 +262,11 @@ export type ContainerLayout =
 /** Atomic serializable authoring operations form the agent tool contract. */
 export type DeckOperation =
   | {
+      readonly type: "updateDocument";
+      readonly title?: string;
+      readonly size?: SlideSize;
+    }
+  | {
       readonly type: "setImageSource";
       readonly nodeId: string;
       readonly source: ImageSource;

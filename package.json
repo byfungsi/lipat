@@ -11,20 +11,23 @@
     "build:wasm": "node scripts/build-wasm.mjs",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.headless.json",
     "test": "npm run build:wasm && vitest run",
-    "verify": "npm run check:boundaries && npm run typecheck && npm test && cargo test --workspace && npm run build && node scripts/check-package.mjs && npm run verify:workerd && npm run docs:compile",
+    "verify": "npm run check:boundaries && npm run typecheck && npm test && cargo test --workspace && npm run build && node scripts/check-package.mjs && npm run verify:workerd && npm run verify:native && npm run docs:compile",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "dev": "npm run build:wasm && npm run build -w @byfungsi/lipat && npm run dev -w @lipat/demo",
     "docs:dev": "npm run build && node scripts/generate-docs.mjs && vitepress docs --host 127.0.0.1",
     "docs:build": "npm run build && npm run docs:compile",
     "format": "prettier --write packages examples scripts tests docs *.json *.ts *.md",
-    "verify:browser": "node scripts/verify-browser.mjs && node scripts/verify-scene-browser.mjs",
+    "verify:browser": "node scripts/verify-browser.mjs && node scripts/verify-scene-browser.mjs && node scripts/verify-editor-browser.mjs",
     "schemas:generate": "node scripts/generate-schemas.mjs",
     "verify:interop": "node scripts/verify-interop.mjs",
     "docs:compile": "node scripts/generate-docs.mjs && vitepress build docs",
     "docs:preview": "vitepress preview docs --host 127.0.0.1 --port 4179",
     "release:prepare": "node scripts/prepare-release.mjs",
     "verify:openxml": "node scripts/verify-openxml.mjs",
-    "verify:workerd": "node scripts/verify-workerd.mjs"
+    "verify:workerd": "node scripts/verify-workerd.mjs",
+    "verify:native": "node scripts/verify-native.mjs",
+    "build:native:ios": "node scripts/build-native-ios.mjs",
+    "build:native:android": "node scripts/build-native-android.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261025.1",
@@ -33,6 +36,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "esbuild": "^0.28.2",
+    "expo-modules-core": "^58.0.26",
     "fast-check": "^4.5.0",
     "jsdom": "^26.1.0",
     "miniflare": "^4.20260730.0",
@@ -41,6 +45,8 @@
     "prettier": "^3.9.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-native": "^0.88.0",
+    "react-native-svg": "15.16.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
@@ -48,7 +54,7 @@
     "vitest": "^5.0.1"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0"
   },
   "license": "MIT",
   "overrides": {

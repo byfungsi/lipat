@@ -34,7 +34,7 @@ const engine=createLipat(bytes); const precompiled=createLipatFromModule(new Web
 if(!engine.ok)throw new Error(engine.error.message);
 const deck=createDeck({id:'consumer',slides:[{id:'s',content:{id:'title',type:'heading',text:'Packed consumer'}}]},{engine:engine.value});
 if(!deck.ok||!deck.value.compile().ok)throw new Error('Packed runtime failed');export const runtime=deck.value;
-for(const subpath of ['model','core','pptx','wasm','render','agent','reveal','images'])await import('@byfungsi/lipat/'+subpath);
+for(const subpath of ['model','core','pptx','wasm','render','agent','reveal','images','native'])await import('@byfungsi/lipat/'+subpath);
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('react');throw new Error('React was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new Error('Motion was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 `,
@@ -116,6 +116,31 @@ if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new E
     )
   )
     throw new Error("Narrow model import pulled unrelated features");
+  const nativeBundle = await build({
+    stdin: {
+      contents:
+        "import {NativeScenePreview,NativeDeckEditor} from '@byfungsi/lipat/react-native'; console.log(NativeScenePreview,NativeDeckEditor);",
+      resolveDir: folder,
+    },
+    bundle: true,
+    platform: "neutral",
+    format: "esm",
+    write: false,
+    external: [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-svg",
+    ],
+  });
+  if (
+    nativeBundle.outputFiles.some((file) =>
+      /lipat_execute|WebAssembly|dangerouslySetInnerHTML|setPointerCapture/.test(
+        file.text,
+      ),
+    )
+  )
+    throw new Error("Native view bundle included browser or WASM mechanics");
   execFileSync(
     "npm",
     [

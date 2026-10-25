@@ -16,3 +16,7 @@ export {
 export { DeckPreview, DeckPlayer } from "./deck-preview";
 export { ScenePreview, ScenePlayer } from "./scene-presentation";
 export type { ScenePreviewProps, ScenePlayerProps } from "./scene-presentation";
+export type { DeckEditorProps } from "./deck-editor";
+
+export { createBrowserPlayback } from "@lipat-internal/browser-playback";
+export type { BrowserPlaybackOptions } from "@lipat-internal/browser-playback";

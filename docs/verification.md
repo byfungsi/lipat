@@ -31,3 +31,9 @@ LIPAT_PYTHON=.venv/bin/python npm run verify:interop
 `npm run verify:workerd` uses Miniflare's real workerd and a compiled-WASM module binding. It exercises public SDK initialization, document validation, layout, PPTX export/import, animation metadata and host-limit errors. Its control confirms dynamic byte compilation is denied without patching globals. This runs in the main verification command and CI.
 
 Browser verification also builds a scene-only fixture, confirms it contains no WASM bridge, decodes embedded raster data, records zero external resource requests through preview/playback/navigation under the embedded-only policy, and checks explicit opt-in and scene replacement cleanup. Packed-consumer checks include scene-only SSR, browser bundle isolation and Cloudflare's published Worker types.
+
+## Editor and native mobile
+
+The built-in editor browser check uses the public package and production playground. It drags palette content onto a slide, edits animation timing, runs Motion preview, saves through the host callback, inserts a real PNG file and reparses exported PPTX to check its native animation. Session tests exercise save/upload cancellation, errors, retry, snapshot ownership, stale targets, strict mode cleanup and ID uniqueness.
+
+`verify:native` loads the actual compiled mobile library through its C ABI and checks owned 64-bit pointer responses, Unicode, layout, animated PPTX round trips and native resource limits. Public native-adapter tests compare the same requests with WASM. Packed-package checks keep native views free of WASM/DOM mechanics. The native workflow cross-builds JNI binaries for all four Android ABIs. Native application runtime evidence must be recorded separately from type checking or cross-compilation.
