@@ -137,11 +137,16 @@ export default function NativeApp() {
                   message: "Unsupported image format",
                 },
               };
+            const existing = new Set(
+              deck.exportDocument().assets.map((asset) => asset.id),
+            );
+            let sequence = 1;
+            while (existing.has(`native-image-${sequence}`)) sequence++;
             return {
               ok: true,
               value: {
                 asset: {
-                  id: `native-image-${deck.getState().revision}`,
+                  id: `native-image-${sequence}`,
                   mimeType: mime,
                   data: encodeAssetBytes(bytes),
                 },

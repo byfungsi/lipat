@@ -204,7 +204,7 @@ try {
     throw Error("Default browser animation ignored reduced motion");
   if (errors.length) throw Error(errors.join("\n"));
   console.log(
-    "Built-in editor Chromium: palette drag/drop, animation properties and Motion preview, host Save snapshot, embedded file upload and native PPTX animation export passed.",
+    "Built-in editor Chromium: palette drag/drop, animation properties, default browser and optional Motion previews, host Save snapshot, embedded file upload and native PPTX animation export passed.",
   );
 } finally {
   await browser?.close();

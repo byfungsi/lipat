@@ -24,7 +24,7 @@ LIPAT_PYTHON=.venv/bin/python npm run verify:interop
 
 ## Package preparation
 
-`npm run build` puts ESM, declarations and the compiled WASM asset in `packages/lipat/dist`. The public package is `@byfungsi/lipat`. The facade bundles all private TypeScript workspaces; no private packages need to be published. React and Motion are optional peers. Run `npm pack -w @byfungsi/lipat` to inspect a release locally. The GitHub Pages workflow verifies and deploys documentation from main using the /lipat/ base path. Release archives are prepared with `npm run release:prepare` and published explicitly as `@byfungsi/lipat`.
+`npm run build` puts ESM, declarations and the compiled WASM asset in `packages/lipat/dist`. The public package is `@byfungsi/lipat`. The facade bundles all private TypeScript workspaces; no private packages need to be published. React, Motion, React Native and react-native-svg are optional peers. Run `npm pack -w @byfungsi/lipat` to inspect a release locally. The GitHub Pages workflow verifies and deploys documentation from main using the /lipat/ base path. Release archives are prepared with `npm run release:prepare` for both `@byfungsi/lipat` and the optional `@byfungsi/lipat-native`. The native archive preflight rejects missing iOS slices, Android ABIs or JNI exports. Build both platform engines before preparing a release.
 
 ## Worker and artifact integration
 
@@ -34,6 +34,6 @@ Browser verification also builds a scene-only fixture, confirms it contains no W
 
 ## Editor and native mobile
 
-The built-in editor browser check uses the public package and production playground. It drags palette content onto a slide, edits animation timing, runs Motion preview, saves through the host callback, inserts a real PNG file and reparses exported PPTX to check its native animation. Session tests exercise save/upload cancellation, errors, retry, snapshot ownership, stale targets, strict mode cleanup and ID uniqueness.
+The built-in editor browser check uses the public package and production playground. It drags palette content onto a slide, edits animation timing, runs default Web Animations and optional Motion previews, saves through the host callback, inserts a real PNG file and reparses exported PPTX to check its native animation. Session tests exercise save/upload cancellation, errors, retry, snapshot ownership, stale targets, strict mode cleanup and ID uniqueness.
 
-`verify:native` loads the actual compiled mobile library through its C ABI and checks owned 64-bit pointer responses, Unicode, layout, animated PPTX round trips and native resource limits. Public native-adapter tests compare the same requests with WASM. Packed-package checks keep native views free of WASM/DOM mechanics. The native workflow cross-builds JNI binaries for all four Android ABIs. Native application runtime evidence must be recorded separately from type checking or cross-compilation.
+`verify:native` loads the actual compiled mobile library through its C ABI and checks owned 64-bit pointer responses, Unicode, layout, animated PPTX round trips and native resource limits. Public native-adapter tests compare the same requests with WASM. Packed-package checks keep native views free of WASM/DOM mechanics. The native workflow cross-builds JNI binaries for all four Android ABIs, builds the Expo Android application, without launching a device or emulator. Device/simulator interaction testing is not part of the current release gate; build checks and native C ABI execution do not establish device playback behavior.

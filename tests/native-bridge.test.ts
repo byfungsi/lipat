@@ -28,6 +28,22 @@ it("connects the same headless runtime to native Rust without a WebAssembly tran
   expect(native.compile(a)).toEqual(wasm.compile(b));
   const deck = unwrap(createDeck(a, { engine: native }));
   unwrap(
+    deck.apply([
+      {
+        type: "updateDocument",
+        title: "Native editor",
+        size: { width: 1200, height: 675 },
+      },
+    ]),
+  );
+  expect(deck.exportDocument()).toMatchObject({
+    title: "Native editor",
+    size: { width: 1200, height: 675 },
+  });
+  expect(native.compile(deck.exportDocument())).toEqual(
+    wasm.compile(deck.exportDocument()),
+  );
+  unwrap(
     deck.applyToCanvas("s1", [
       {
         type: "setFrame",

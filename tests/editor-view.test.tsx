@@ -42,6 +42,13 @@ it("edits portable animation timing and rich text through the built-in inspector
     target: { value: "Rich title" },
   });
   fireEvent.click(screen.getByText("Bold run"));
+  fireEvent.click(screen.getByText("Underline run"));
+  fireEvent.change(screen.getByLabelText("Run font family"), {
+    target: { value: "Arial" },
+  });
+  fireEvent.change(screen.getByLabelText("Run font size"), {
+    target: { value: "42" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Apply properties" }));
   expect(
     deck.inspect().slides[0]?.nodes.find((node) => node.id === "title"),
@@ -56,7 +63,17 @@ it("edits portable animation timing and rich text through the built-in inspector
   });
   expect(unwrap(deck.compile()).scene.slides[0]?.elements[0]).toMatchObject({
     text: "Rich title",
-    runs: [{ text: "Rich title", style: { bold: true } }],
+    runs: [
+      {
+        text: "Rich title",
+        style: {
+          bold: true,
+          underline: true,
+          fontFamily: "Arial",
+          fontSize: 42,
+        },
+      },
+    ],
   });
   expect(deck.getState().revision).toBe(1);
   fireEvent.click(screen.getByRole("button", { name: "Undo" }));

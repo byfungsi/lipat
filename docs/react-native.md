@@ -17,6 +17,16 @@ Install `react-native-svg` in the native app itself and rebuild the app as requi
 
 Hermes does not need browser WebAssembly support. The optional `@byfungsi/lipat-native` package supplies an Expo module backed by the same Rust dispatcher as WASM. It provides document validation, editing, deterministic layout, PPTX import/export and resource limits through a synchronous JSON bridge.
 
+For an Expo development build, install the public packages in the app:
+
+```sh
+npm install @byfungsi/lipat @byfungsi/lipat-native
+npx expo install react-native-svg
+npx expo run:ios       # or: npx expo run:android
+```
+
+Then start Metro with `npx expo start --dev-client`. Rebuild the development app after adding or upgrading the native add-on. The published add-on includes the platform binaries; consumers do not need Rust or an NDK to install it.
+
 Install the native add-on in the **app** alongside `@byfungsi/lipat`, React Native and `react-native-svg`. Expo applications use a development/production build; Expo Go does not contain this custom module. Bare React Native applications can install Expo Modules infrastructure and use the same bridge.
 
 ```ts

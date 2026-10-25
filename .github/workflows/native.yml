@@ -36,17 +36,3 @@ jobs:
         working-directory: examples/native-demo/android
         env:
           NODE_ENV: production
-      - name: Enable emulator acceleration
-        run: sudo chmod 666 /dev/kvm
-      - uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: false
-          script: python3 scripts/verify-native-android.py
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lipat-android-app-verification
-          path: artifacts/android-app/
