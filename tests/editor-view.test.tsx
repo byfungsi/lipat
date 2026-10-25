@@ -202,4 +202,11 @@ it("edits presentation metadata and custom theme tokens together and inserts ins
     size: { width: 1200 },
     theme: { accent: "#112233" },
   });
+  fireEvent.click(screen.getByRole("button", { name: "2. Second" }));
+  fireEvent.change(screen.getByLabelText("Vertical group"), {
+    target: { value: "s1" },
+  });
+  expect(deck.exportDocument().slides[1]?.parentId).toBe("s1");
+  fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+  expect(deck.exportDocument().slides[1]?.parentId).toBeUndefined();
 });

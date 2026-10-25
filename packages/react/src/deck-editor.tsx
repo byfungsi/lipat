@@ -550,6 +550,28 @@ function EditorWorkspace({
             />
             Hidden slide
           </label>
+          <label>
+            Vertical group
+            <select
+              value={slide.parentId ?? ""}
+              disabled={readOnly}
+              onChange={(event) =>
+                report(
+                  session.setSlideParent(slide.id, event.target.value || null),
+                )
+              }
+            >
+              <option value="">Top-level slide</option>
+              {state.document.slides
+                .slice(0, state.document.slides.indexOf(slide))
+                .filter((item) => !item.parentId)
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    Under {item.title || item.id}
+                  </option>
+                ))}
+            </select>
+          </label>
         </div>
       ) : null}
       {!readOnly ? (

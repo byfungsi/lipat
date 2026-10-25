@@ -104,3 +104,5 @@ For each primitive, set a nonnegative reveal step (zero means automatic), choose
 These settings are document data. They survive save/reload, history, native rendering and the supported PPTX animation export/import subset. They do not turn arbitrary Motion timelines, springs or CSS animation into portable PowerPoint effects. See [animation support](./animations.md).
 
 Keyboard shortcuts outside text inputs: Ctrl/Cmd-S saves, Ctrl/Cmd-Z undoes, Shift-Ctrl/Cmd-Z redoes, Ctrl/Cmd-D duplicates selection and Delete/Backspace removes selection.
+
+The slide properties also expose **Vertical group**. Choose an earlier top-level slide as a parent for reveal.js vertical grouping, or return to a top-level slide. Built-in players keep linear navigation; the reveal adapter uses this metadata. Invalid grouping or moves fail atomically.

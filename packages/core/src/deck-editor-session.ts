@@ -83,6 +83,7 @@ export interface DeckEditorSession {
   createNodeId(kind: string): string;
   addSlide(): LipatResult<void>;
   duplicateSlide(slideId: string): LipatResult<void>;
+  setSlideParent(slideId: string, parentId: string | null): LipatResult<void>;
   deleteSelection(): LipatResult<void>;
   duplicateSelection(): LipatResult<void>;
   moveLayer(
@@ -450,6 +451,24 @@ class EditorSession implements DeckEditorSession {
     ]);
     if (result.ok) this.deck.setActiveSlide(id);
     return result;
+  }
+  setSlideParent(slideId: string, parentId: string | null): LipatResult<void> {
+    const check = this.editable();
+    if (!check.ok) return check;
+    const slides = this.deck.exportDocument().slides;
+    const index = slides.findIndex((slide) => slide.id === slideId),
+      slide = slides[index];
+    if (!slide)
+      return failure("invalidSelection", "Editor slide does not exist");
+    const { parentId: _, ...topLevel } = slide;
+    return this.deck.apply([
+      { type: "deleteSlide", slideId },
+      {
+        type: "insertSlide",
+        index,
+        slide: parentId ? { ...topLevel, parentId } : topLevel,
+      },
+    ]);
   }
   private copyNode(node: SlideNode): SlideNode {
     return "children" in node

@@ -82,3 +82,12 @@ writeFileSync(
 console.log(
   `Prepared ${native.name}@${native.version}: artifacts/release/${nativePacked.filename}`,
 );
+execFileSync(
+  process.execPath,
+  [
+    "scripts/check-native-consumer.mjs",
+    `artifacts/release/${packed.filename}`,
+    `artifacts/release/${nativePacked.filename}`,
+  ],
+  { stdio: "inherit" },
+);

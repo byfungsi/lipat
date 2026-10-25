@@ -2,13 +2,13 @@
 
 The requested outcome is a reusable editor on the web, React Native support, host-owned save and image workflows (including upload/commands before obtaining the final URL), and editing of all Lipat content and portable animation features.
 
-The current browser editor supplies text/notes and basic gestures. Extend it without removing the composable components or read-only views. Keep persistence and image processing behind explicit callbacks; never assume a bucket, credential, database or network client. A headless editing session owns pending work, cancellation, dirty/save state and atomic content commands. Browser and native views subscribe to it; the runtime remains the single source of document/history truth.
+The built-in browser editor extends the original text/notes and gesture controls while preserving composable components and read-only views. Keep persistence and image processing behind explicit callbacks; never assume a bucket, credential, database or network client. A headless editing session owns pending work, cancellation, dirty/save state and atomic content commands. Browser and native views subscribe to it; the runtime remains the single source of document/history truth.
 
 Freeform edits can explicitly resolve semantic layouts to canvas geometry, using the native scene-to-document conversion. Conversion and the requested edit form one transaction, retain primitive IDs/appearance and undo together. Semantic editing remains available through the existing document operations.
 
 React Native must include native views and a supported engine path without relying on Hermes implementing browser WebAssembly. Native rendering uses resolved scenes; native parsing/compilation/export must call the same Rust dispatcher. Platform I/O stays with the host. Nori's current GitHub main has no React Native entrypoint; do not invent parity evidence from it.
 
-Completion evidence still required:
+Delivered scope (device/simulator interaction testing was explicitly excluded by the maintainer):
 
 - Public built-in editor: slide create/duplicate/delete/reorder, all content kinds, text/rich formatting, tables, shape/image options, frame/rotation, layering, theme, semantic layout, undo/redo, keyboard/pointer drag/drop/resize, read-only behavior and diagnostics.
 - Save callback: immutable snapshot, pending/error/retry states, no duplicate submission, edits during save remain dirty, no false saved state after failure or replacement.
@@ -16,3 +16,11 @@ Completion evidence still required:
 - Animation editor: reveal step, four effects, duration, delay, easing, clearing, preview/replay and preservation in JSON/PPTX.
 - React Native: importable isolated entrypoint, preview/player/editor, touch editing and host callbacks, rendering policies and reduced motion, native engine bridge/build setup and real native execution evidence.
 - Examples/docs and appropriate native/WASM, browser, package-boundary and packed-consumer checks. Publication remains separately auditable; do not claim complete based on a smaller passing subset.
+
+Verification evidence:
+
+- 67 TypeScript tests and the Rust workspace suite pass through real WASM/native boundaries. Editor interaction tests cover content, rich runs, tables, metadata/themes and vertical grouping; session tests cover atomic workflows, snapshots, stale targets, errors and cancellation.
+- Chromium exercises real drag/drop and geometry, file upload, host Save, default Web Animations and optional Motion preview, reduced motion and PPTX animation export/import. Scene-only checks enforce no external fetching under the embedded-only policy.
+- Headless/native package isolation, a packed SDK consumer, a paired packed native-add-on consumer and real workerd initialization pass. Native C ABI checks exercise owned pointer responses, Unicode, compile/PPTX and limits.
+- iOS Expo application compilation succeeds; Android JNI binaries cross-build for all four ABIs. The native CI workflow also compiles the Expo Android application without starting a device or emulator.
+- Microsoft Open XML validation reports zero errors; an independent python-pptx consumer verifies exported slides, notes, tables and images. Publication is separately verified against the registry.

@@ -434,6 +434,27 @@ function NativeEditorWorkspace({
                   )
                 }
               />
+              <Text style={nativeEditorStyles.heading}>Vertical group</Text>
+              <View style={nativeEditorStyles.bar}>
+                <NativeEditorButton
+                  label="Top-level slide"
+                  selected={!slide.parentId}
+                  onPress={() => report(session.setSlideParent(slide.id, null))}
+                />
+                {state.document.slides
+                  .slice(0, state.document.slides.indexOf(slide))
+                  .filter((item) => !item.parentId)
+                  .map((item) => (
+                    <NativeEditorButton
+                      key={item.id}
+                      label={`Under ${item.title || item.id}`}
+                      selected={slide.parentId === item.id}
+                      onPress={() =>
+                        report(session.setSlideParent(slide.id, item.id))
+                      }
+                    />
+                  ))}
+              </View>
             </>
           ) : null}
           <View style={nativeEditorStyles.bar}>

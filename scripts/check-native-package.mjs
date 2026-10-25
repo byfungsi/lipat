@@ -50,6 +50,6 @@ for (const abi of ["arm64-v8a", "armeabi-v7a", "x86_64", "x86"]) {
     )
       throw Error(`Android ${abi} is missing ${method}`);
 }
-console.log(
+console.error(
   "Native package includes real iOS device/simulator and all four Android JNI binaries.",
 );
