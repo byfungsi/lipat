@@ -1,0 +1,810 @@
+//! Portable authoring documents and resolved slide scenes. All distances are points.
+use base64::{engine::general_purpose::STANDARD, Engine};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashSet};
+
+/// Expected failures cross native and WASM boundaries as serializable values.
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LipatError {
+    pub reason: String,
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub node_id: Option<String>,
+}
+impl LipatError {
+    pub fn new(reason: &str, message: impl Into<String>) -> Self {
+        Self {
+            reason: reason.into(),
+            message: message.into(),
+            node_id: None,
+        }
+    }
+}
+pub type Result<T> = std::result::Result<T, LipatError>;
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Diagnostic {
+    pub code: String,
+    pub severity: String,
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub slide_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub node_id: Option<String>,
+}
+impl Diagnostic {
+    pub fn warning(
+        code: &str,
+        message: impl Into<String>,
+        slide_id: Option<String>,
+        node_id: Option<String>,
+    ) -> Self {
+        Self {
+            code: code.into(),
+            severity: "warning".into(),
+            message: message.into(),
+            slide_id,
+            node_id,
+        }
+    }
+}
+#[derive(JsonSchema, Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Size {
+    pub width: f64,
+    pub height: f64,
+}
+impl Default for Size {
+    fn default() -> Self {
+        Self {
+            width: 960.,
+            height: 540.,
+        }
+    }
+}
+#[derive(JsonSchema, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Frame {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    #[serde(default)]
+    pub rotation: f64,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Theme {
+    pub font_family: String,
+    pub font_size: f64,
+    pub heading_size: f64,
+    pub foreground: String,
+    pub background: String,
+    pub accent: String,
+    pub padding: f64,
+    pub gap: f64,
+}
+impl Default for Theme {
+    fn default() -> Self {
+        Self {
+            font_family: "Arial".into(),
+            font_size: 24.,
+            heading_size: 48.,
+            foreground: "#172033".into(),
+            background: "#FFFFFF".into(),
+            accent: "#5B5BD6".into(),
+            padding: 48.,
+            gap: 24.,
+        }
+    }
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TextStyle {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_family: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_size: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bold: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub italic: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub underline: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub align: Option<String>,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TextRun {
+    pub text: String,
+    #[serde(default)]
+    pub style: TextStyle,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum TextContent {
+    Plain(String),
+    Rich(Vec<TextRun>),
+}
+impl TextContent {
+    pub fn text(&self) -> String {
+        match self {
+            Self::Plain(s) => s.clone(),
+            Self::Rich(r) => r.iter().map(|r| r.text.as_str()).collect(),
+        }
+    }
+    pub fn runs(&self) -> Vec<TextRun> {
+        match self {
+            Self::Plain(s) => vec![TextRun {
+                text: s.clone(),
+                style: TextStyle::default(),
+            }],
+            Self::Rich(r) => r.clone(),
+        }
+    }
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Node {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frame: Option<Frame>,
+    #[serde(default)]
+    pub style: TextStyle,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step: Option<u32>,
+    #[serde(flatten)]
+    pub kind: NodeKind,
+}
+fn default_level() -> u8 {
+    1
+}
+fn default_fit() -> String {
+    "contain".into()
+}
+fn default_geometry() -> String {
+    "rect".into()
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum NodeKind {
+    Heading {
+        text: TextContent,
+        #[serde(default = "default_level")]
+        level: u8,
+    },
+    Text {
+        text: TextContent,
+    },
+    List {
+        items: Vec<String>,
+        #[serde(default)]
+        ordered: bool,
+    },
+    Image {
+        #[serde(rename = "assetId")]
+        asset_id: String,
+        #[serde(default)]
+        alt: String,
+        #[serde(default = "default_fit")]
+        fit: String,
+    },
+    Shape {
+        #[serde(default = "default_geometry")]
+        geometry: String,
+        #[serde(default)]
+        fill: Option<String>,
+        #[serde(default)]
+        stroke: Option<String>,
+    },
+    Table {
+        columns: Vec<String>,
+        rows: Vec<Vec<String>>,
+    },
+    Code {
+        text: String,
+        #[serde(default)]
+        language: String,
+    },
+    Stack {
+        children: Vec<Node>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        gap: Option<f64>,
+    },
+    Row {
+        children: Vec<Node>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        gap: Option<f64>,
+    },
+    Grid {
+        columns: usize,
+        children: Vec<Node>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        gap: Option<f64>,
+    },
+    Canvas {
+        children: Vec<Node>,
+    },
+}
+impl Node {
+    pub fn children(&self) -> Option<&[Node]> {
+        match &self.kind {
+            NodeKind::Stack { children, .. }
+            | NodeKind::Row { children, .. }
+            | NodeKind::Grid { children, .. }
+            | NodeKind::Canvas { children } => Some(children),
+            _ => None,
+        }
+    }
+    pub fn children_mut(&mut self) -> Option<&mut Vec<Node>> {
+        match &mut self.kind {
+            NodeKind::Stack { children, .. }
+            | NodeKind::Row { children, .. }
+            | NodeKind::Grid { children, .. }
+            | NodeKind::Canvas { children } => Some(children),
+            _ => None,
+        }
+    }
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Slide {
+    pub id: String,
+    #[serde(default)]
+    pub title: String,
+    pub content: Node,
+    #[serde(default)]
+    pub notes: String,
+    #[serde(default)]
+    pub hidden: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Asset {
+    pub id: String,
+    pub mime_type: String,
+    pub data: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<f64>,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DeckDocument {
+    #[serde(default = "version_one")]
+    pub version: u32,
+    pub id: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub size: Size,
+    #[serde(default)]
+    pub theme: Theme,
+    #[serde(default)]
+    pub assets: Vec<Asset>,
+    pub slides: Vec<Slide>,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SceneElement {
+    pub id: String,
+    pub frame: Frame,
+    #[serde(default)]
+    pub style: TextStyle,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step: Option<u32>,
+    #[serde(flatten)]
+    pub kind: SceneKind,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum SceneKind {
+    Text {
+        text: String,
+        runs: Vec<TextRun>,
+        lines: Vec<String>,
+        #[serde(rename = "lineHeight", default = "default_line_height")]
+        line_height: f64,
+    },
+    Shape {
+        geometry: String,
+        fill: Option<String>,
+        stroke: Option<String>,
+    },
+    Image {
+        #[serde(rename = "assetId")]
+        asset_id: String,
+        alt: String,
+        fit: String,
+    },
+    Table {
+        columns: Vec<String>,
+        rows: Vec<Vec<String>>,
+    },
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SceneSlide {
+    pub id: String,
+    pub title: String,
+    pub notes: String,
+    pub hidden: bool,
+    pub background: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    pub elements: Vec<SceneElement>,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SlideScene {
+    pub version: u32,
+    pub title: String,
+    pub size: Size,
+    pub assets: Vec<Asset>,
+    pub slides: Vec<SceneSlide>,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CompileOutput {
+    pub scene: SlideScene,
+    pub diagnostics: Vec<Diagnostic>,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FontMetrics {
+    pub family: String,
+    pub average_width: f64,
+    pub line_height: f64,
+    #[serde(default)]
+    pub glyph_widths: BTreeMap<String, f64>,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CompileOptions {
+    #[serde(default)]
+    pub fonts: Vec<FontMetrics>,
+}
+fn id_valid(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 256
+}
+fn color_valid(color: &str) -> bool {
+    color.len() == 7 && color.starts_with('#') && color[1..].bytes().all(|c| c.is_ascii_hexdigit())
+}
+pub fn check_frame(f: Frame) -> Result<()> {
+    if [f.x, f.y, f.width, f.height, f.rotation]
+        .iter()
+        .any(|v| !v.is_finite() || v.abs() > 1e7)
+        || f.width < 0.
+        || f.height < 0.
+    {
+        return Err(LipatError::new("invalidDocument", "Invalid element frame"));
+    }
+    Ok(())
+}
+pub fn check_style(s: &TextStyle) -> Result<()> {
+    if s.font_size
+        .is_some_and(|v| !v.is_finite() || v <= 0. || v > 4000.)
+        || s.color.as_ref().is_some_and(|v| !color_valid(v))
+        || s.align
+            .as_ref()
+            .is_some_and(|v| !matches!(v.as_str(), "left" | "center" | "right" | "justify"))
+    {
+        return Err(LipatError::new("invalidDocument", "Invalid text style"));
+    }
+    Ok(())
+}
+/// Validate every serialized document boundary, including rehydration and edits.
+pub fn check_document(doc: &DeckDocument) -> Result<()> {
+    if doc.version != 1 || !id_valid(&doc.id) || doc.slides.is_empty() || doc.slides.len() > 10000 {
+        return Err(LipatError::new(
+            "invalidDocument",
+            "Expected version 1, a deck identity and 1–10000 slides",
+        ));
+    }
+    if [doc.size.width, doc.size.height]
+        .iter()
+        .any(|v| !v.is_finite() || *v <= 0. || *v > 1e7)
+    {
+        return Err(LipatError::new("invalidDocument", "Invalid slide size"));
+    }
+    let t = &doc.theme;
+    if !color_valid(&t.background)
+        || !color_valid(&t.foreground)
+        || !color_valid(&t.accent)
+        || [t.font_size, t.heading_size]
+            .iter()
+            .any(|v| !v.is_finite() || *v <= 0. || *v > 4000.)
+        || [t.padding, t.gap].iter().any(|v| !v.is_finite() || *v < 0.)
+    {
+        return Err(LipatError::new("invalidDocument", "Invalid theme"));
+    }
+    let mut assets = HashSet::new();
+    let mut asset_bytes = 0;
+    for a in &doc.assets {
+        if !id_valid(&a.id)
+            || !assets.insert(a.id.clone())
+            || !matches!(
+                a.mime_type.as_str(),
+                "image/png" | "image/jpeg" | "image/gif" | "image/webp"
+            )
+        {
+            return Err(LipatError::new(
+                "invalidDocument",
+                "Invalid or duplicate raster asset",
+            ));
+        }
+        let bytes = STANDARD
+            .decode(&a.data)
+            .map_err(|_| LipatError::new("invalidDocument", "Invalid base64 image asset"))?;
+        asset_bytes += bytes.len();
+        if asset_bytes > 64 * 1024 * 1024 {
+            return Err(LipatError::new(
+                "resourceLimit",
+                "Embedded assets exceed 64 MiB",
+            ));
+        }
+        if [a.width, a.height]
+            .into_iter()
+            .flatten()
+            .any(|v| !v.is_finite() || v <= 0.)
+        {
+            return Err(LipatError::new(
+                "invalidDocument",
+                "Invalid asset dimensions",
+            ));
+        }
+    }
+    let mut slide_ids = HashSet::new();
+    let mut node_ids = HashSet::new();
+    let mut count = 0;
+    for s in &doc.slides {
+        if !id_valid(&s.id)
+            || !slide_ids.insert(s.id.clone())
+            || s.background.as_ref().is_some_and(|c| !color_valid(c))
+        {
+            return Err(LipatError::new(
+                "invalidDocument",
+                "Invalid or duplicate slide identity or background",
+            ));
+        }
+        check_node(&s.content, &assets, &mut node_ids, &mut count, 0)?;
+    }
+    for (index, s) in doc.slides.iter().enumerate() {
+        if let Some(parent) = &s.parent_id {
+            if !doc.slides[..index]
+                .iter()
+                .any(|p| &p.id == parent && p.parent_id.is_none())
+            {
+                return Err(LipatError::new(
+                    "invalidDocument",
+                    "A vertical slide must reference an earlier top-level slide",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+fn check_node(
+    n: &Node,
+    assets: &HashSet<String>,
+    ids: &mut HashSet<String>,
+    count: &mut usize,
+    depth: usize,
+) -> Result<()> {
+    *count += 1;
+    if depth > 64 || *count > 100000 {
+        return Err(LipatError::new(
+            "resourceLimit",
+            "Document exceeds 64 levels or 100000 nodes",
+        ));
+    }
+    if !id_valid(&n.id) || !ids.insert(n.id.clone()) {
+        return Err(LipatError::new(
+            "invalidDocument",
+            "Node identities must be unique across the deck",
+        ));
+    }
+    if let Some(f) = n.frame {
+        check_frame(f)?;
+    }
+    check_style(&n.style)?;
+    let check_text = |text: &TextContent| -> Result<()> {
+        if text.text().len() > 1_000_000 {
+            return Err(LipatError::new(
+                "resourceLimit",
+                "Text exceeds one million bytes",
+            ));
+        }
+        for r in text.runs() {
+            check_style(&r.style)?;
+        }
+        Ok(())
+    };
+    match &n.kind {
+        NodeKind::Heading { text, level } => {
+            if !(1..=6).contains(level) {
+                return Err(LipatError::new(
+                    "invalidDocument",
+                    "Heading level must be 1–6",
+                ));
+            }
+            check_text(text)?;
+        }
+        NodeKind::Text { text } => check_text(text)?,
+        NodeKind::Image { asset_id, fit, .. } => {
+            if !assets.contains(asset_id)
+                || !matches!(fit.as_str(), "contain" | "cover" | "stretch")
+            {
+                return Err(LipatError::new(
+                    "invalidDocument",
+                    "Missing image asset or invalid image fit",
+                ));
+            }
+        }
+        NodeKind::Shape {
+            geometry,
+            fill,
+            stroke,
+        } => {
+            if !matches!(geometry.as_str(), "rect" | "roundRect" | "ellipse" | "line")
+                || fill.iter().chain(stroke.iter()).any(|v| !color_valid(v))
+            {
+                return Err(LipatError::new(
+                    "invalidDocument",
+                    "Invalid shape geometry or color",
+                ));
+            }
+        }
+        NodeKind::Table { columns, rows } => {
+            if columns.is_empty()
+                || columns.len() > 1000
+                || rows.len() > 10000
+                || rows.iter().any(|r| r.len() != columns.len())
+            {
+                return Err(LipatError::new(
+                    "invalidDocument",
+                    "Table cells must match the column count",
+                ));
+            }
+        }
+        NodeKind::Stack { gap, .. } | NodeKind::Row { gap, .. } | NodeKind::Grid { gap, .. }
+            if gap.is_some_and(|gap| !gap.is_finite() || gap < 0.) =>
+        {
+            return Err(LipatError::new(
+                "invalidDocument",
+                "Layout gap must be nonnegative",
+            ));
+        }
+        _ => {}
+    }
+    if let NodeKind::Grid { columns, .. } = &n.kind {
+        if *columns == 0 || *columns > 1000 {
+            return Err(LipatError::new(
+                "invalidDocument",
+                "Grid columns must be 1–1000",
+            ));
+        }
+    }
+    if let Some(children) = n.children() {
+        for c in children {
+            if matches!(n.kind, NodeKind::Canvas { .. }) && c.frame.is_none() {
+                return Err(LipatError::new(
+                    "invalidDocument",
+                    "Canvas children require explicit frames",
+                ));
+            }
+            check_node(c, assets, ids, count, depth + 1)?;
+        }
+    }
+    Ok(())
+}
+/// Validate a scene before native or WASM export.
+pub fn check_scene(scene: &SlideScene) -> Result<()> {
+    if scene.version != 1 || scene.slides.is_empty() {
+        return Err(LipatError::new(
+            "invalidScene",
+            "Expected version 1 with at least one slide",
+        ));
+    }
+    for slide in &scene.slides {
+        for element in &slide.elements {
+            if let SceneKind::Text {
+                text,
+                runs,
+                lines,
+                line_height,
+            } = &element.kind
+            {
+                let mut cursor = 0;
+                if lines.is_empty() && !text.is_empty() {
+                    return Err(LipatError::new(
+                        "invalidScene",
+                        "Nonempty text requires resolved lines",
+                    ));
+                }
+                for line in lines {
+                    let next = text
+                        .get(cursor..)
+                        .and_then(|rest| rest.find(line))
+                        .ok_or_else(|| {
+                            LipatError::new(
+                                "invalidScene",
+                                "Resolved text lines must occur in source order",
+                            )
+                        })?;
+                    cursor += next + line.len();
+                }
+                if !line_height.is_finite()
+                    || *line_height <= 0.
+                    || lines.len() > 10000
+                    || (!runs.is_empty()
+                        && runs.iter().map(|r| r.text.as_str()).collect::<String>() != *text)
+                {
+                    return Err(LipatError::new(
+                        "invalidScene",
+                        "Invalid text lines, line height or rich text runs",
+                    ));
+                }
+            }
+        }
+    }
+    check_document(&scene_to_document(scene))
+}
+/// Import scene geometry explicitly as editable canvas content without inferring semantics.
+pub fn scene_to_document(scene: &SlideScene) -> DeckDocument {
+    DeckDocument {
+        version: 1,
+        id: "imported-deck".into(),
+        title: scene.title.clone(),
+        size: scene.size,
+        theme: Theme {
+            padding: 0.,
+            ..Theme::default()
+        },
+        assets: scene.assets.clone(),
+        slides: scene
+            .slides
+            .iter()
+            .enumerate()
+            .map(|(i, s)| Slide {
+                id: s.id.clone(),
+                title: s.title.clone(),
+                notes: s.notes.clone(),
+                hidden: s.hidden,
+                background: Some(s.background.clone()),
+                parent_id: s.parent_id.clone(),
+                content: Node {
+                    id: format!("{}-canvas-{i}", s.id),
+                    frame: None,
+                    style: TextStyle::default(),
+                    step: None,
+                    kind: NodeKind::Canvas {
+                        children: s
+                            .elements
+                            .iter()
+                            .map(|e| Node {
+                                id: e.id.clone(),
+                                frame: Some(e.frame),
+                                style: e.style.clone(),
+                                step: e.step,
+                                kind: match &e.kind {
+                                    SceneKind::Text { text, runs, .. } => NodeKind::Text {
+                                        text: if runs.is_empty() {
+                                            TextContent::Plain(text.clone())
+                                        } else {
+                                            TextContent::Rich(runs.clone())
+                                        },
+                                    },
+                                    SceneKind::Shape {
+                                        geometry,
+                                        fill,
+                                        stroke,
+                                    } => NodeKind::Shape {
+                                        geometry: geometry.clone(),
+                                        fill: fill.clone(),
+                                        stroke: stroke.clone(),
+                                    },
+                                    SceneKind::Image { asset_id, alt, fit } => NodeKind::Image {
+                                        asset_id: asset_id.clone(),
+                                        alt: alt.clone(),
+                                        fit: fit.clone(),
+                                    },
+                                    SceneKind::Table { columns, rows } => NodeKind::Table {
+                                        columns: columns.clone(),
+                                        rows: rows.clone(),
+                                    },
+                                },
+                            })
+                            .collect(),
+                    },
+                },
+            })
+            .collect(),
+    }
+}
+
+fn version_one() -> u32 {
+    1
+}
+
+fn default_line_height() -> f64 {
+    28.8
+}
+
+/// Infer common raster dimensions without a decoder or host image APIs.
+pub fn asset_dimensions(asset: &Asset) -> Option<(f64, f64)> {
+    if let Some(pair) = asset.width.zip(asset.height) {
+        return Some(pair);
+    }
+    let bytes = STANDARD.decode(&asset.data).ok()?;
+    let pair = if bytes.starts_with(b"\x89PNG\r\n\x1a\n") && bytes.len() >= 24 {
+        (
+            u32::from_be_bytes(bytes[16..20].try_into().ok()?),
+            u32::from_be_bytes(bytes[20..24].try_into().ok()?),
+        )
+    } else if bytes.starts_with(b"GIF8") && bytes.len() >= 10 {
+        (
+            u16::from_le_bytes(bytes[6..8].try_into().ok()?) as u32,
+            u16::from_le_bytes(bytes[8..10].try_into().ok()?) as u32,
+        )
+    } else if bytes.starts_with(&[255, 216]) {
+        let mut i = 2;
+        let mut dimensions = None;
+        while i + 8 < bytes.len() {
+            if bytes[i] != 255 {
+                i += 1;
+                continue;
+            }
+            let marker = bytes[i + 1];
+            if marker == 0xd9 || marker == 0xda {
+                break;
+            }
+            if marker == 0xd8 || marker == 0x01 || (0xd0..=0xd7).contains(&marker) {
+                i += 2;
+                continue;
+            }
+            let len = u16::from_be_bytes([bytes[i + 2], bytes[i + 3]]) as usize;
+            if len < 2 || i + len + 2 > bytes.len() {
+                break;
+            }
+            if matches!(
+                marker,
+                0xc0 | 0xc1
+                    | 0xc2
+                    | 0xc3
+                    | 0xc5
+                    | 0xc6
+                    | 0xc7
+                    | 0xc9
+                    | 0xca
+                    | 0xcb
+                    | 0xcd
+                    | 0xce
+                    | 0xcf
+            ) {
+                dimensions = Some((
+                    u16::from_be_bytes([bytes[i + 7], bytes[i + 8]]) as u32,
+                    u16::from_be_bytes([bytes[i + 5], bytes[i + 6]]) as u32,
+                ));
+                break;
+            }
+            i += len + 2;
+        }
+        dimensions?
+    } else {
+        return None;
+    };
+    if pair.0 == 0 || pair.1 == 0 {
+        return None;
+    }
+    Some((pair.0 as f64, pair.1 as f64))
+}

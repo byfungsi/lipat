@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": [
+    "packages/model",
+    "packages/core",
+    "packages/pptx",
+    "packages/render",
+    "packages/agent",
+    "packages/reveal"
+  ]
+}

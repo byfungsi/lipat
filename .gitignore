@@ -1,0 +1,12 @@
+node_modules/
+dist/
+target/
+*.tsbuildinfo
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+packages/wasm/lipat.wasm
+*.tgz
+artifacts/
+
+.venv/
+docs/public/

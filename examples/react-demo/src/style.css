@@ -1,0 +1,414 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #172033;
+  background: #f6f6f9;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+.file-button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #dddde8;
+  background: white;
+  border-radius: 7px;
+  padding: 9px 14px;
+  color: inherit;
+}
+button:hover,
+.file-button:hover {
+  border-color: #7772dc;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+input,
+textarea {
+  font: inherit;
+  border: 1px solid #d6d8e2;
+  border-radius: 6px;
+  padding: 10px;
+  max-width: 100%;
+}
+label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+.app-header {
+  height: 78px;
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  padding: 0 44px;
+  background: white;
+  border-bottom: 1px solid #e6e6ef;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font:
+    600 30px "Space Grotesk",
+    sans-serif;
+  color: #172033;
+  text-decoration: none;
+}
+.fold-mark {
+  color: #6256db;
+  font-size: 37px;
+}
+.version {
+  font:
+    600 9px "DM Sans",
+    sans-serif;
+  letter-spacing: 1px;
+  color: #6f6a8d;
+  background: #f1effb;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.tagline {
+  color: #858697;
+  font-size: 13px;
+}
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.header-actions > button {
+  background: #6256db;
+  color: white;
+  border-color: #6256db;
+}
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+main {
+  max-width: 1440px;
+  margin: auto;
+  padding: 42px 44px 18px;
+}
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7b728c;
+  letter-spacing: 1.7px;
+}
+h1 {
+  font:
+    500 34px "Space Grotesk",
+    sans-serif;
+  letter-spacing: -1.1px;
+  margin: 10px 0;
+}
+p {
+  color: #777b8b;
+  line-height: 1.65;
+  font-size: 14px;
+  margin: 8px 0;
+}
+.mode-tabs {
+  display: flex;
+  background: #eaeaf1;
+  border-radius: 9px;
+  padding: 4px;
+}
+.mode-tabs button {
+  background: transparent;
+  border: 0;
+  padding: 8px 20px;
+  color: #7c7d8e;
+  font-size: 12px;
+}
+.mode-tabs button[aria-pressed="true"] {
+  background: white;
+  color: #29223c;
+  box-shadow: 0 1px 4px #25204412;
+}
+.studio {
+  background: white;
+  border: 1px solid #e4e4ee;
+  border-radius: 13px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px #24214405;
+}
+.lipat-editor {
+  position: relative;
+  padding-top: 54px;
+}
+.lipat-history {
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  display: flex;
+  gap: 6px;
+}
+.lipat-history button {
+  font-size: 11px;
+  padding: 6px 12px;
+}
+.lipat-tabs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 160px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 4px;
+  overflow: auto;
+}
+.lipat-tabs button {
+  border: 0;
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 8px 12px;
+  color: #77788a;
+}
+.lipat-tabs button[aria-current="page"] {
+  background: #efedff;
+  color: #6256db;
+}
+.lipat-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  border-top: 1px solid #ededf3;
+  background: #eeeef4;
+  gap: 0;
+}
+.lipat-canvas {
+  margin: auto;
+  max-width: 100%;
+  box-shadow: 0 3px 24px #1e183f12;
+}
+.lipat-inspector {
+  padding: 18px;
+  background: #fbfbfd;
+  border-left: 1px solid #e8e8ef;
+  overflow: auto;
+  font-size: 12px;
+}
+.lipat-inspector p {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.lipat-inspector form {
+  display: grid;
+  gap: 10px;
+}
+.lipat-inspector textarea {
+  width: 100%;
+  font-size: 12px;
+}
+.lipat-inspector > label {
+  margin-top: 28px;
+  font-size: 11px;
+}
+.lipat-diagnostics {
+  padding: 12px 22px;
+  margin: 0;
+  max-height: 65px;
+  overflow: auto;
+  font-size: 10px;
+  color: #8c879b;
+  list-style: none;
+  border-top: 1px solid #eeeef5;
+}
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 26px;
+}
+.agent-card,
+.preview-card {
+  padding: 28px;
+  border: 1px solid #e4e4ee;
+  border-radius: 12px;
+  background: white;
+}
+h2 {
+  font:
+    500 21px "Space Grotesk",
+    sans-serif;
+  margin: 10px 0;
+}
+.agent-card p {
+  max-width: 470px;
+  font-size: 12px;
+}
+.agent-card label {
+  margin-top: 18px;
+}
+.agent-card > button {
+  margin-top: 10px;
+  background: #f0edff;
+  color: #6256db;
+  border: 0;
+  font-size: 12px;
+}
+.agent-card pre {
+  background: #f7f7fa;
+  padding: 17px;
+  border-radius: 8px;
+  color: #7b718e;
+  font-size: 11px;
+}
+.export-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.export-actions button {
+  font-size: 10px;
+  padding: 7px 10px;
+}
+.lipat-preview {
+  background: #1b1c28;
+  color: #d2d1e0;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 25px;
+  max-width: 440px;
+}
+.lipat-preview header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+.lipat-preview header button {
+  background: #33313f;
+  border: 0;
+  color: #c9c5db;
+  font-size: 10px;
+  padding: 5px 9px;
+}
+.lipat-preview nav,
+.lipat-player nav {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding-top: 10px;
+  font-size: 10px;
+}
+.lipat-preview nav button {
+  font-size: 10px;
+  background: transparent;
+  border-color: #393744;
+  color: #c9c5db;
+}
+.lipat-player {
+  padding: 20px;
+  background: #eeeef4;
+}
+.lipat-player details {
+  font-size: 12px;
+  padding-top: 10px;
+}
+.source-panel {
+  padding: 24px;
+}
+.source-panel textarea {
+  font:
+    12px ui-monospace,
+    monospace;
+  width: 100%;
+  min-height: 440px;
+}
+.source-panel button {
+  margin-top: 12px;
+}
+.error {
+  white-space: pre-wrap;
+  background: #fff3e7;
+  padding: 15px;
+  font-size: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.error button {
+  float: right;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+}
+footer {
+  font-size: 10px;
+  text-align: center;
+  color: #9a98a7;
+  margin-top: 35px;
+  margin-bottom: 15px;
+}
+@media (max-width: 900px) {
+  .tagline {
+    display: none;
+  }
+  .app-header {
+    padding: 0 20px;
+  }
+  .page-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+  main {
+    padding: 28px 20px;
+  }
+  .lipat-workspace {
+    grid-template-columns: 1fr;
+  }
+  .lipat-inspector {
+    display: none;
+  }
+  .bottom-grid {
+    grid-template-columns: 1fr;
+  }
+  h1 {
+    font-size: 28px;
+  }
+  .header-actions {
+    gap: 5px;
+  }
+  .header-actions button,
+  .file-button {
+    font-size: 11px;
+  }
+  .lipat-tabs {
+    right: 130px;
+  }
+  .lipat-history {
+    right: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+  }
+}

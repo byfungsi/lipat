@@ -1,0 +1,39 @@
+# Support and Nori parity
+
+The reference baseline is [byfungsi/nori at e9f0fd6](https://github.com/byfungsi/nori/tree/e9f0fd6c17e3dcf1e7f08bca6fc7535b8ea94c77). The goal is Nori's useful library architecture adapted to presentations, with semantic authoring and agents as the primary workflow. Spreadsheet-specific features do not map to slide features.
+
+| Nori capability                                  | Lipat equivalent                                                                                               |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Versioned canonical JSON and boundary validation | DeckDocument source and SlideScene output, validated in Rust                                                   |
+| Headless core and portable contracts             | No DOM/React/file/network assumptions in model/core/parser contracts                                           |
+| XLSX byte import/export                          | Independent PPTX byte import/export                                                                            |
+| CSV authoring/import convenience                 | Markdown slide authoring and TypeScript slide presets                                                          |
+| Cell edits and atomic batches                    | Stable-ID node, layout, style, asset and slide operations                                                      |
+| Bounded undo/redo and subscriptions              | Immutable history, revisions, optimistic edit checks and subscriptions                                         |
+| Selection and dimension interactions             | Node selection, drag/resize, keyboard nudges and inspector                                                     |
+| Composable React views                           | Provider/hooks, tabs, canvas, inspector, history and diagnostics                                               |
+| Read-only attachment preview                     | Local-navigation DeckPreview and separate DeckPlayer                                                           |
+| Strict/headless checks and packed consumer       | Equivalent package, declaration, isolation and SSR checks                                                      |
+| Documentation and agent-readable exports         | VitePress guides, native-generated JSON schemas, llms exports                                                  |
+| Browser playground                               | Real WASM demo with imports, editing, agent edits, playback and exports                                        |
+| Formula evaluation and pivots                    | No direct slide equivalent; semantic layout compilation and diagnostics are presentation-specific capabilities |
+| WASM                                             | Added: real Rust/WASM validation, editing, layout and PPTX translation                                         |
+
+## Current support
+
+| Area         | Implemented                                                                                                             | Boundary                                                                                                                                                                      |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Creation     | JSON, TypeScript presets, Markdown; stack/row/grid/canvas; themes, rich text, images, basic shapes, lists, tables, code | No arbitrary HTML/CSS or automatic design generation                                                                                                                          |
+| Editing      | Atomic operations, stable IDs, expected revisions, insert/delete/move nodes and slides, notes, theme and assets         | Snapshot history is O(document size); no collaborative CRDT                                                                                                                   |
+| Layout       | Deterministic flow, explicit frames, wrapping, font metrics, node-specific overflow/bounds diagnostics                  | Approximate fallback fonts; no complex text shaping, auto font fitting or complete rich-run measurement                                                                       |
+| PPTX text    | Text/runs, font family/size, bold/italic/underline, basic paragraph alignment, bullets as text                          | Advanced paragraph spacing, full text inheritance, font embedding and text effects are not retained                                                                           |
+| PPTX shapes  | Rect/roundRect/ellipse/line, direct fill/stroke, element rotation, simple group scale/translation                       | Custom geometry and complex group rotation/flips are approximate/omitted with warnings                                                                                        |
+| Images       | Embedded PNG/JPEG/GIF/WebP, alternative text, scene fit modes                                                           | Contain/cover export uses intrinsic raster dimensions; arbitrary asymmetric crop metadata is warned/flattened                                                                 |
+| Tables       | Rectangular string cells with a header and simple grid preview/export                                                   | No merged cells, full table styles, per-cell formatting or complete multiline layout                                                                                          |
+| Slides       | Relationship ordering, hidden state, title, background, notes, placeholder geometry and decorative master/layout shapes | No full master/layout editing or arbitrary source package preservation                                                                                                        |
+| Presentation | Local playback, incremental steps, notes, HTML keyboard/print flow, reveal.js markup, vertical sections                 | PPTX animations/transitions are not mapped; steps flatten with warnings on PPTX export; vertical grouping is used by the reveal.js adapter, while built-in playback is linear |
+| Agent        | Five framework-neutral tools, generated schemas, compact inspection and revision conflicts                              | No provider SDK, model execution or MCP server bundled                                                                                                                        |
+| Platforms    | Native Rust, actual WASM in Node/browser, React SSR, ESM declarations                                                   | React Native/device hosts unverified; no CommonJS build                                                                                                                       |
+| Export       | Canonical PPTX, self-contained HTML, SVG, JSON; browser print CSS                                                       | PDF generation belongs to the browser host; no PDF engine in WASM                                                                                                             |
+
+Charts, SmartArt, OLE, macros, media, encryption, legacy `.ppt`, arbitrary gradients/effects, original animations and lossless arbitrary-PPTX rewriting are outside the current version. Detected unsupported graphics/media/timing generate warnings. Features outside the documented subset may still be ignored. WebP support varies in external PowerPoint applications.

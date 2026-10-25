@@ -1,0 +1,15 @@
+{
+  "name": "@lipat-internal/reveal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@lipat-internal/model": "0.1.0",
+    "@lipat-internal/core": "0.1.0",
+    "@lipat-internal/render": "0.1.0"
+  }
+}

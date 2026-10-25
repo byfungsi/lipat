@@ -1,0 +1,9 @@
+[package]
+name = "lipat-author"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+[dependencies]
+lipat-model = { path = "../lipat-model" }
+serde.workspace = true
+schemars = "0.8"
