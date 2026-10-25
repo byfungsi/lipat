@@ -25,9 +25,15 @@ pub enum Operation {
         node_id: String,
         animation: Option<EntranceAnimation>,
     },
+    SetImageSource {
+        #[serde(rename = "nodeId")]
+        node_id: String,
+        source: ImageSource,
+    },
     SetStep {
         #[serde(rename = "nodeId")]
         node_id: String,
+        #[schemars(range(max = 10000))]
         step: Option<u32>,
     },
     SetLayout {
@@ -207,6 +213,19 @@ pub fn apply_operations(doc: &DeckDocument, operations: &[Operation]) -> Result<
             }
             Operation::SetAnimation { node_id, animation } => {
                 find_doc_node(&mut next, node_id)?.animation = animation.clone();
+            }
+            Operation::SetImageSource { node_id, source } => {
+                match &mut find_doc_node(&mut next, node_id)?.kind {
+                    NodeKind::Image {
+                        source: existing, ..
+                    } => *existing = source.clone(),
+                    _ => {
+                        return Err(LipatError::new(
+                            "invalidOperation",
+                            "Image source edits require an image node",
+                        ))
+                    }
+                }
             }
             Operation::SetStep { node_id, step } => {
                 find_doc_node(&mut next, node_id)?.step = *step;

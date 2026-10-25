@@ -6,7 +6,7 @@ import type {
   SlideNode,
   DeckSlide,
 } from "@lipat-internal/model";
-/** Parse a small deterministic Markdown authoring format: --- slides, -- vertical slides, Notes:, lists, code, tables and asset images. */
+/** Parse deterministic slide Markdown, including asset references and HTTP(S) image URLs without fetching. */
 export function fromMarkdown(
   source: string,
   options: {
@@ -86,12 +86,24 @@ export function fromMarkdown(
         i++;
         continue;
       }
-      const image = /^!\[([^\]]*)\]\(asset:([^)]+)\)\s*$/.exec(line);
+      const image = /^!\[([^\]]*)\]\((.+)\)\s*$/.exec(line);
       if (image) {
+        const source = image[2] ?? "";
+        if (!source.startsWith("asset:") && !/^https?:\/\//i.test(source))
+          return {
+            ok: false,
+            error: {
+              reason: "invalidMarkdown",
+              message:
+                "Markdown image requires an asset: reference or absolute HTTP(S) URL",
+            },
+          };
         children.push({
           id: id(),
           type: "image",
-          assetId: image[2] ?? "",
+          ...(source.startsWith("asset:")
+            ? { assetId: source.slice(6) }
+            : { url: source }),
           alt: image[1] ?? "",
           fit: "contain",
         });
@@ -126,7 +138,7 @@ export function fromMarkdown(
       while (
         i < lines.length &&
         (lines[i] ?? "").trim() &&
-        !/^(#{1,6}\s|```|notes?:|[-*+] |\d+\. )/i.test(lines[i] ?? "")
+        !/^(#{1,6}\s|```|notes?:|[-*+] |\d+\. |!\[)/i.test(lines[i] ?? "")
       )
         paragraph.push(lines[i++] ?? "");
       children.push({ id: id(), type: "text", text: paragraph.join("\n") });

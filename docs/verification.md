@@ -8,6 +8,8 @@ Tests exercise real interfaces: TypeScript authoring through actual WASM, indepe
 
 Motion playback checks include nonzero rendered bounds and an identity transform after each entrance and replay. Visibility and opacity alone cannot detect SVG content collapsed by a zero transform matrix.
 
+For independent XML validation, install .NET SDK 8 and run `npm run verify:openxml`. This generates animations for text, rotated shapes, raster images and tables, automatic/parallel/delayed/gapped reveal groups, and linked image relationships. Microsoft’s Open XML SDK validates the actual PPTX package. Set `LIPAT_DOTNET` to a custom dotnet path if needed. CI runs this check.
+
 For independent writer interoperability:
 
 ```sh

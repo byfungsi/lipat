@@ -18,6 +18,8 @@ for (const path of [
   "dist/index.d.ts",
   "dist/motion.js",
   "dist/motion.d.ts",
+  "dist/images.js",
+  "dist/images.d.ts",
   "README.md",
   "LICENSE",
 ])

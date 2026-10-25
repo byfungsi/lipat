@@ -1,6 +1,6 @@
 {
   "name": "@byfungsi/lipat",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Agent-friendly slide authoring, independent PPTX import/export, React views and a Rust WebAssembly core",
   "type": "module",
   "sideEffects": false,
@@ -52,6 +52,10 @@
     "./motion": {
       "types": "./dist/motion.d.ts",
       "import": "./dist/motion.js"
+    },
+    "./images": {
+      "types": "./dist/images.d.ts",
+      "import": "./dist/images.js"
     }
   },
   "scripts": {

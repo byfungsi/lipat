@@ -22,7 +22,7 @@ All expected failures are `LipatResult<T>` with a stable `error.reason` and a re
 | `subscribe(listener)`                      | Returns unsubscribe; callback defects propagate to the host                      |
 | `dispose()`                                | Release listeners/history and reject subsequent mutations                        |
 
-Operations: `updateText`, `updateStyle`, `setFrame`, `setLayout`, `setAnimation`, `setStep`, `replaceNode`, `insertNode`, `deleteNode`, `moveNode`, `insertSlide`, `deleteSlide`, `moveSlide`, `updateSlide`, `setTheme`, `upsertAsset`, `deleteAsset`. The generated schema in `/agent` describes every field.
+Operations: `updateText`, `updateStyle`, `setFrame`, `setLayout`, `setAnimation`, `setStep`, `setImageSource`, `replaceNode`, `insertNode`, `deleteNode`, `moveNode`, `insertSlide`, `deleteSlide`, `moveSlide`, `updateSlide`, `setTheme`, `upsertAsset`, `deleteAsset`. The generated schema in `/agent` describes every field.
 
 `updateStyle` merges supplied properties; false clears bold/italic/underline. `replaceNode` replaces the complete node but must retain its ID. `setFrame` accepts null to restore flow placement. Removing the last slide, duplicate IDs, missing assets and nonrectangular tables are rejected. Final-state validation permits an atomic batch to add an asset and then use it.
 
@@ -30,6 +30,10 @@ Node moves use the insertion index after removing the original node. A node cann
 
 ## Render
 
-`renderSlideSvg(scene, slideId, {title?,step?,retainSteps?})` returns escaped SVG. `step` filters incremental content for playback; omitted means all content. `retainSteps` retains future content in hidden SVG groups for playback adapters. `renderDeckHtml(scene)` returns self-contained HTML with keyboard navigation, steps, notes and print styles. Input is expected to be a validated scene from the engine.
+`renderSlideSvg(scene, slideId, {title?,step?,retainSteps?})` returns escaped SVG. `step` filters incremental content for playback; omitted means all content. `retainSteps` retains future content in hidden SVG groups for playback adapters. `renderDeckHtml(scene)` returns HTML (self-contained when image assets are embedded) with keyboard navigation, steps, notes and print styles. Input is expected to be a validated scene from the engine.
 
 `renderRevealMarkup(scene)` emits reveal-compatible sections and fragments. `updateRevealPresentation(root,reveal,scene)` replaces markup and calls the injected instance's `sync()`. Hosts load reveal.js, its styles and plugins themselves.
+
+## Image resolution
+
+`/images` exports `createImageLoader`, `embedDocumentImages` and `embedSceneImages`. `/pptx` and the root entry export `writePptxWithImages`. Hosts supply the network capability; failures return Result values. See [image URLs](./images.md) for embedding, linked export and limits.

@@ -24,6 +24,7 @@ export default defineConfig({
           { text: "Agent authoring", link: "/agents" },
           { text: "React", link: "/react" },
           { text: "Animations", link: "/animations" },
+          { text: "Images and URLs", link: "/images" },
           { text: "PPTX import/export", link: "/pptx" },
           { text: "WASM and native", link: "/wasm" },
           { text: "Support & parity", link: "/support" },

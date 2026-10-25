@@ -5,6 +5,7 @@ import type {
   DeckDocument,
   DeckOperation,
   EntranceAnimation,
+  ImageSource,
   LipatEngine,
   LipatResult,
   SlideNode,
@@ -34,6 +35,7 @@ export interface DeckOutline {
       readonly parentId: string | null;
       readonly step?: number;
       readonly animation?: EntranceAnimation;
+      readonly image?: ImageSource;
     }[];
   }[];
 }
@@ -81,6 +83,14 @@ function flatten(
     parentId,
     ...(node.step !== undefined ? { step: node.step } : {}),
     ...(node.animation !== undefined ? { animation: node.animation } : {}),
+    ...(node.type === "image"
+      ? {
+          image:
+            node.url !== undefined
+              ? { url: node.url }
+              : { assetId: node.assetId },
+        }
+      : {}),
   });
   if ("children" in node)
     for (const child of node.children) flatten(child, node.id, output, max);

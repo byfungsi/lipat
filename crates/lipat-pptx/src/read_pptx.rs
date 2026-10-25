@@ -1,3 +1,4 @@
+use crate::animation_timing::read_slide_timing;
 use crate::package::*;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use lipat_model::*;
@@ -331,41 +332,55 @@ impl Reader {
                             && c.attribute("t").unwrap_or("0") == c.attribute("b").unwrap_or("0")
                     });
                     let rel = descendant(n, "blip")
-                        .and_then(|n| rel_attr(n, "embed"))
-                        .and_then(|id| rels.get(id));
-                    if let Some(rel) = rel.filter(|r| !r.external) {
-                        if let Some(asset_id) = self.image(&rel.target)? {
-                            out.push(SceneElement {
-                                id: id.clone(),
-                                frame: f,
-                                style: TextStyle::default(),
-                                step: None,
-                                animation: None,
-                                kind: SceneKind::Image {
-                                    asset_id,
-                                    alt: descendant(n, "cNvPr")
-                                        .and_then(|n| n.attribute("descr"))
-                                        .unwrap_or("")
-                                        .into(),
-                                    fit: if symmetric {
-                                        "cover".into()
-                                    } else {
-                                        "stretch".into()
-                                    },
-                                },
-                            });
+                        .and_then(|n| rel_attr(n, "embed").or_else(|| rel_attr(n, "link")))
+                        .and_then(|id| rels.get(id))
+                        .filter(|r| r.kind.ends_with("/image"));
+                    let source = if let Some(rel) = rel {
+                        if rel.external {
+                            if check_image_url(&rel.target).is_ok() {
+                                self.warn(
+                                    "linkedImage",
+                                    "External image URL retained without fetching it",
+                                    slide_id,
+                                    Some(id.clone()),
+                                );
+                                Some(ImageSource::Url {
+                                    url: rel.target.clone(),
+                                })
+                            } else {
+                                None
+                            }
                         } else {
-                            self.warn(
-                                "unsupportedImage",
-                                "Only PNG, JPEG, GIF and WebP images are supported",
-                                slide_id,
-                                Some(id.clone()),
-                            );
+                            self.image(&rel.target)?
+                                .map(|asset_id| ImageSource::Asset { asset_id })
                         }
                     } else {
+                        None
+                    };
+                    if let Some(source) = source {
+                        out.push(SceneElement {
+                            id: id.clone(),
+                            frame: f,
+                            style: TextStyle::default(),
+                            step: None,
+                            animation: None,
+                            kind: SceneKind::Image {
+                                source,
+                                alt: descendant(n, "cNvPr")
+                                    .and_then(|n| n.attribute("descr"))
+                                    .unwrap_or("")
+                                    .into(),
+                                fit: if symmetric {
+                                    "cover".into()
+                                } else {
+                                    "stretch".into()
+                                },
+                            },
+                        });
+                    } else {
                         self.warn(
-                            "externalImage",
-                            "External or missing image reference was not loaded",
+                            "unsupportedImage",
+                            "Missing, invalid linked image, or unsupported raster image",
                             slide_id,
                             Some(id.clone()),
                         );
@@ -683,8 +698,15 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
                 &mut elements,
             )?;
         }
+        if !read_slide_timing(doc.root_element(), &slide_id, size, &mut elements) {
+            reader.warn(
+                "unsupportedAnimation",
+                "Some native animation behaviors are outside the supported entrance subset",
+                &slide_id,
+                None,
+            );
+        }
         for (tag, code) in [
-            ("timing", "unsupportedAnimation"),
             ("transition", "unsupportedTransition"),
             ("videoFile", "unsupportedMedia"),
             ("audioFile", "unsupportedMedia"),

@@ -10,6 +10,7 @@ const names = [
   "reveal",
   "render",
   "motion",
+  "images",
 ];
 export default defineConfig({
   resolve: {

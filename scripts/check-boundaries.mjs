@@ -2,9 +2,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 const allowed = {
   model: [],
+  images: ["model"],
   motion: ["model"],
   core: ["model"],
-  pptx: ["model"],
+  pptx: ["model", "images"],
   wasm: ["model"],
   render: ["model"],
   agent: ["core", "model", "render"],
@@ -12,6 +13,7 @@ const allowed = {
   reveal: ["model", "render"],
   lipat: [
     "model",
+    "images",
     "motion",
     "core",
     "pptx",

@@ -33,7 +33,7 @@ const engine=createLipat(new Uint8Array(readFileSync(fileURLToPath(import.meta.r
 if(!engine.ok)throw new Error(engine.error.message);
 const deck=createDeck({id:'consumer',slides:[{id:'s',content:{id:'title',type:'heading',text:'Packed consumer'}}]},{engine:engine.value});
 if(!deck.ok||!deck.value.compile().ok)throw new Error('Packed runtime failed');export const runtime=deck.value;
-for(const subpath of ['model','core','pptx','wasm','render','agent','reveal'])await import('@byfungsi/lipat/'+subpath);
+for(const subpath of ['model','core','pptx','wasm','render','agent','reveal','images'])await import('@byfungsi/lipat/'+subpath);
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('react');throw new Error('React was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new Error('Motion was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 `,
@@ -45,7 +45,7 @@ if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new E
   });
   writeFileSync(
     join(folder, "consumer.ts"),
-    `import {createDeck} from '@byfungsi/lipat'; import type {LipatEngine,DeckInput} from '@byfungsi/lipat'; declare const engine:LipatEngine; const input:DeckInput={id:'d',slides:[{id:'s',content:{id:'n',type:'heading',text:'Hello'}}]}; const result=createDeck(input,{engine}); if(result.ok)result.value.apply([{type:'updateText',nodeId:'n',text:'Updated'}]);`,
+    `import {createImageLoader,embedDocumentImages} from '@byfungsi/lipat/images'; import type {ImageFetch} from '@byfungsi/lipat/images'; declare const fetchImage:ImageFetch; const loader=createImageLoader(fetchImage); import {createDeck} from '@byfungsi/lipat'; import type {LipatEngine,DeckInput} from '@byfungsi/lipat'; declare const engine:LipatEngine; const input:DeckInput={id:'d',slides:[{id:'s',content:{id:'n',type:'heading',text:'Hello'}}]}; const result=createDeck(input,{engine}); if(result.ok)result.value.apply([{type:'updateText',nodeId:'n',text:'Updated'}]);`,
   );
   writeFileSync(
     join(folder, "tsconfig.json"),

@@ -11,6 +11,7 @@ export default defineConfig({
     "src/reveal.ts",
     "src/render.ts",
     "src/motion.ts",
+    "src/images.ts",
   ],
   format: ["esm"],
   target: "es2022",

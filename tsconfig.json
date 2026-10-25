@@ -25,7 +25,8 @@
       "@lipat-internal/agent": ["./packages/agent/src/index.ts"],
       "@lipat-internal/reveal": ["./packages/reveal/src/index.ts"],
       "@lipat-internal/render": ["./packages/render/src/index.ts"],
-      "@lipat-internal/motion": ["./packages/motion/src/index.ts"]
+      "@lipat-internal/motion": ["./packages/motion/src/index.ts"],
+      "@lipat-internal/images": ["./packages/images/src/index.ts"]
     },
     "types": ["node", "vitest/globals"]
   },

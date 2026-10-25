@@ -1,14 +1,12 @@
 # Animations
 
-Lipat keeps animation instructions in JSON and plays them through an optional [Motion](https://motion.dev/docs/animate) browser adapter. Rust and WASM validate and preserve the same metadata. Motion executes in JavaScript in the browser.
+Lipat keeps animation instructions in portable JSON. Two independent adapters translate them into [Motion](https://motion.dev/docs/animate) browser playback and native PowerPoint timing. Rust and WASM validate and export the same instructions; Motion itself runs only in browser JavaScript.
 
-Available in `@byfungsi/lipat` **0.2.0** and later. [Open the animation sample](./playground/index.html?sample=animations), or choose **Animation sample** in the playground. Advance four times to see fade, rise, slide and zoom; go backward and advance again to replay. Choose **Document** to inspect or edit the JSON. Device reduced-motion preferences reveal the content immediately.
-
-Use **0.2.1 or newer**: it fixes transformed entrances collapsing to zero size after playback in 0.2.0. Browser regression checks verify rendered geometry after each effect and after replay.
+Native PPTX entrances and reveal steps are available in **0.3.0**. [Open the animation sample](./playground/index.html?sample=animations), or choose **Animation sample** in the playground. Advance four times to see fade, rise, slide and zoom; go backward and advance again to replay. Export the same deck as PPTX to retain its native builds. Choose **Document** to inspect or edit the JSON. Browser playback respects device reduced-motion preferences.
 
 ## Author an entrance
 
-Add `animation` to a leaf node (text, heading, list, code, image, shape or table). `step` controls when it appears: omitted/zero means slide entry, positive integers mean subsequent reveal steps. Nodes at the same step enter together.
+Add `animation` to a leaf node (text, heading, list, code, image, shape or table). `step` controls when it appears: omitted/zero means slide entry, integers 1–10000 mean subsequent reveal steps. Nodes at the same step enter together.
 
 ```ts
 const node = {
@@ -32,7 +30,7 @@ Effects are `fade`, `rise` (24 points upward into position), `slide` (32 points 
 Install `motion` alongside React when using the optional `/motion` entrypoint:
 
 ```sh
-npm install @byfungsi/lipat@^0.2.1 motion@^14.6.0 react react-dom
+npm install @byfungsi/lipat@^0.3.0 motion@^14.6.0 react react-dom
 ```
 
 ```tsx
@@ -91,16 +89,30 @@ controller.destroy();
 
 The generic `SlidePlaybackDriver<Surface>` contract belongs to the portable model. Motion implements it for `HTMLElement`; React handles mounting and navigation. Alternate playback engines can implement the same contract. Each controller scopes DOM access to its own surface. Importing the adapter does not access the DOM or start animation.
 
+## Native PowerPoint export
+
+`engine.writePptx(scene)` translates the shared model into native PresentationML timing. It does not embed Motion or JavaScript. No Motion dependency is required to produce animated PPTX files, including from native Rust or WASM.
+
+- Fade animates opacity; rise adds a 24-point vertical entrance; slide adds a 32-point horizontal entrance; zoom scales from 95% to 100%. Rotated targets retain their local entrance direction.
+- Step zero starts automatically on slide entry. Positive steps consume clicks; targets at the same step start together with their own delays. Steps inherited from containers are resolved before export. A step without an effect becomes an appear build. Empty step gaps are written as timing placeholders and produce `emptyAnimationStep` diagnostics because some clients compact them; use consecutive steps for cross-client delivery.
+- Durations and delays are rounded to whole milliseconds, with a minimum 1 ms duration; changed timings produce `animationTimingQuantized` diagnostics.
+- `linear` maps directly. `easeOut` and `easeInOut` use native acceleration/deceleration approximations and produce `animationEasingApproximation` diagnostics. Browser and PowerPoint easing are not pixel-identical.
+- Text, shapes, images and tables can be targets. At most 100000 reveal steps across a PPTX may be exported.
+
+Lipat reparses its exported native subset into editable animation metadata and reveal steps. Import is deliberately conservative: unrelated motion paths, unsupported filters, repeated/interactive effects and other timing structures produce `unsupportedAnimation` diagnostics. This is not a general conversion of arbitrary PowerPoint animations into Motion.
+
+The writer is checked with Microsoft's Open XML SDK validator and native/WASM equivalence and roundtrip tests. A manual Keynote import check confirms native entrance builds, durations, directions and sequential/parallel advancement. Keynote maps effects to its own presets and compacts empty steps. Desktop PowerPoint playback has not been verified in this environment. PowerPoint clients and other presentation apps may render timing differently; schema validity is not a guarantee of identical playback in every client.
+
 ## Output boundaries
 
-| Output                         | Behavior                                                                        |
-| ------------------------------ | ------------------------------------------------------------------------------- |
-| Lipat JSON / compiled scene    | Preserves animation instructions                                                |
-| Browser with Motion adapter    | Plays supported entrance effects                                                |
-| Plain player / standalone HTML | Instant reveal steps; entrance effects are ignored                              |
-| SVG / editor / preview         | Static final state                                                              |
-| reveal.js adapter              | Reveal fragments; Lipat entrance effects are ignored                            |
-| PPTX export                    | Static final state, with `unsupportedAnimationExport` diagnostics by node       |
-| PPTX import                    | Native animation/timing remains unsupported and produces warnings when detected |
+| Output                         | Behavior                                                          |
+| ------------------------------ | ----------------------------------------------------------------- |
+| Lipat JSON / compiled scene    | Preserves portable animation instructions                         |
+| Browser with Motion adapter    | Plays supported entrance effects                                  |
+| Plain player / standalone HTML | Instant reveal steps; no entrance effects                         |
+| SVG / editor / preview         | Static final state                                                |
+| reveal.js adapter              | Reveal fragments; no Lipat entrance effects                       |
+| PPTX export                    | Native entrances, click groups, automatic entry and delays        |
+| PPTX import                    | Retains the recognized native subset; warns on unsupported timing |
 
-Motion does not translate effects into PowerPoint timing XML. Slide transitions, exits, arbitrary timelines, spring authoring and morphing between slides are future extensions to the portable contract.
+Custom Motion springs, callbacks, arbitrary CSS/keyframes, exits, slide transitions and morphing are outside the portable contract. Use Lipat's `animation` fields for effects that must travel into PPTX.

@@ -7,6 +7,7 @@
   },
   "include": [
     "packages/model",
+    "packages/images",
     "packages/core",
     "packages/pptx",
     "packages/render",

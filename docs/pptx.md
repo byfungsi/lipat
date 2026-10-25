@@ -6,7 +6,7 @@ Supported content includes presentation relationships and slide order, standard 
 
 `engine.importScene(imported.scene)` returns an editable canvas document. This is a separate explicit step. The parser does not require authoring/layout and does not infer grids or semantic components.
 
-`writePptx(scene,{engine})` writes a new canonical ZIP with a presentation, relationships, slides, blank layout/master/theme, embedded images and notes. It reports unsupported incremental-step export. Reopen exported bytes through the parser, or consume them in another application. Independent python-pptx verification checks writer interoperability.
+`writePptx(scene,{engine})` writes a new canonical ZIP with a presentation, relationships, slides, blank layout/master/theme, embedded or linked images, notes and native entrance timing. Reveal steps become click groups; supported animation fields become native effects. Easing approximations and timing rounding produce diagnostics. See [animations](./animations.md) and [image URLs](./images.md). Reopen exported bytes through the parser, or consume them in another application. Independent python-pptx verification checks writer interoperability.
 
 ## Resource limits
 
@@ -16,6 +16,7 @@ Supported content includes presentation relationships and slide order, standard 
 - DTD/entity expansion is disabled.
 - Authoring documents: 10,000 slides, 100,000 nodes, 64 nested levels; requests: 96 MiB.
 - Embedded raster asset bytes: 64 MiB total.
+- Reveal step: 0–10000 per node; PPTX export: at most 100000 reveal steps across slides.
 
 These are implementation bounds, not performance guarantees. Memory/runtime costs depend on content. Use workers for latency-sensitive hosts.
 

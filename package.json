@@ -22,7 +22,8 @@
     "verify:interop": "node scripts/verify-interop.mjs",
     "docs:compile": "node scripts/generate-docs.mjs && vitepress build docs",
     "docs:preview": "vitepress preview docs --host 127.0.0.1 --port 4179",
-    "release:prepare": "node scripts/prepare-release.mjs"
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "verify:openxml": "node scripts/verify-openxml.mjs"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.0",

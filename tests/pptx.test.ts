@@ -76,7 +76,7 @@ describe("independent PPTX byte adapter", () => {
     expect(exported.bytes.slice(0, 2)).toEqual(Uint8Array.from([80, 75]));
     expect(
       exported.diagnostics.some((d) => d.code === "unsupportedFragmentExport"),
-    ).toBe(true);
+    ).toBe(false);
     const imported = unwrap(parsePptx(exported.bytes, { engine }));
     expect(imported.scene.slides.map((s) => s.title)).toEqual([
       "First",

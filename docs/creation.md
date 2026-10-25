@@ -41,7 +41,7 @@ Presets return ordinary source nodes with predictable IDs, such as `opening-titl
 - `text`: string or rich text runs.
 - `list`: string items with bullet or ordered numbering.
 - `code`: plain code and language metadata; syntax highlighting is a host extension.
-- `image`: embedded asset identity, alternative text and contain/cover/stretch fit.
+- `image`: an embedded asset identity or absolute HTTP(S) URL, alternative text and contain/cover/stretch fit.
 - `shape`: rectangle, rounded rectangle, ellipse or line, with explicit fill/stroke.
 - `table`: header columns and rectangular string rows.
 - `stack`: vertical flow; children keep natural heights.
@@ -61,7 +61,7 @@ const source = fromMarkdown("# Hello\n\n- One\n- Two\n---\n# Next slide", {
 if (source.ok) createDeck(source.value, { engine });
 ```
 
-Supported syntax: headings, paragraphs, ordered/unordered lists, fenced code, simple pipe tables and `![alt](asset:asset-id)` embedded images. `---` separates horizontal slides; `--` starts a vertical slide under the preceding top-level slide. `Notes:` starts speaker notes through the end of that slide. Separators inside fenced code stay code. Rich inline Markdown, HTML and arbitrary remote image fetching are not supplied.
+Supported syntax: headings, paragraphs, ordered/unordered lists, fenced code, simple pipe tables and `![alt](asset:asset-id)` embedded images or `![alt](https://example.com/photo.png)` URL images. `---` separates horizontal slides; `--` starts a vertical slide under the preceding top-level slide. `Notes:` starts speaker notes through the end of that slide. Separators inside fenced code stay code. Rich inline Markdown and HTML are not supplied. Markdown parsing does not fetch remote images; see [image resolution](./images.md).
 
 ## Text measurement
 

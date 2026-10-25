@@ -194,12 +194,33 @@
             "type": "object"
           },
           {
+            "description": "Exactly one embedded assetId or absolute HTTP(S) image URL",
+            "oneOf": [
+              {
+                "properties": {
+                  "assetId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["assetId"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "url": {
+                    "format": "uri",
+                    "maxLength": 8192,
+                    "pattern": "^[hH][tT][tT][pP][sS]?://",
+                    "type": "string"
+                  }
+                },
+                "required": ["url"],
+                "type": "object"
+              }
+            ],
             "properties": {
               "alt": {
                 "default": "",
-                "type": "string"
-              },
-              "assetId": {
                 "type": "string"
               },
               "fit": {
@@ -211,7 +232,7 @@
                 "type": "string"
               }
             },
-            "required": ["assetId", "type"],
+            "required": ["type"],
             "type": "object"
           },
           {
@@ -386,6 +407,7 @@
           },
           "step": {
             "format": "uint32",
+            "maximum": 10000.0,
             "minimum": 0.0,
             "type": ["integer", "null"]
           },
@@ -706,6 +728,32 @@
         "required": ["height", "width", "x", "y"],
         "type": "object"
       },
+      "ImageSource": {
+        "description": "Exactly one embedded assetId or absolute HTTP(S) image URL",
+        "oneOf": [
+          {
+            "properties": {
+              "assetId": {
+                "type": "string"
+              }
+            },
+            "required": ["assetId"],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "url": {
+                "format": "uri",
+                "maxLength": 8192,
+                "pattern": "^[hH][tT][tT][pP][sS]?://",
+                "type": "string"
+              }
+            },
+            "required": ["url"],
+            "type": "object"
+          }
+        ]
+      },
       "Layout": {
         "oneOf": [
           {
@@ -822,12 +870,33 @@
             "type": "object"
           },
           {
+            "description": "Exactly one embedded assetId or absolute HTTP(S) image URL",
+            "oneOf": [
+              {
+                "properties": {
+                  "assetId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["assetId"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "url": {
+                    "format": "uri",
+                    "maxLength": 8192,
+                    "pattern": "^[hH][tT][tT][pP][sS]?://",
+                    "type": "string"
+                  }
+                },
+                "required": ["url"],
+                "type": "object"
+              }
+            ],
             "properties": {
               "alt": {
                 "default": "",
-                "type": "string"
-              },
-              "assetId": {
                 "type": "string"
               },
               "fit": {
@@ -839,7 +908,7 @@
                 "type": "string"
               }
             },
-            "required": ["assetId", "type"],
+            "required": ["type"],
             "type": "object"
           },
           {
@@ -1014,6 +1083,7 @@
           },
           "step": {
             "format": "uint32",
+            "maximum": 10000.0,
             "minimum": 0.0,
             "type": ["integer", "null"]
           },
@@ -1247,8 +1317,25 @@
           "nodeId": {
             "type": "string"
           },
+          "source": {
+            "$ref": "#/definitions/ImageSource"
+          },
+          "type": {
+            "enum": ["setImageSource"],
+            "type": "string"
+          }
+        },
+        "required": ["nodeId", "source", "type"],
+        "type": "object"
+      },
+      {
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
           "step": {
             "format": "uint32",
+            "maximum": 10000.0,
             "minimum": 0.0,
             "type": ["integer", "null"]
           },

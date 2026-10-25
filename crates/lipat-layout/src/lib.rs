@@ -179,8 +179,11 @@ impl Compiler<'_> {
                 .iter()
                 .filter_map(|c| c.frame.map(|f| f.y + f.height))
                 .fold(0., f64::max),
-            NodeKind::Image { asset_id, .. } => {
-                let a = self.assets.iter().find(|a| &a.id == asset_id);
+            NodeKind::Image { source, .. } => {
+                let a = self
+                    .assets
+                    .iter()
+                    .find(|a| Some(a.id.as_str()) == source.asset_id());
                 match a.and_then(asset_dimensions) {
                     Some((w, h)) => width * h / w,
                     None => width * 0.5625,
@@ -219,11 +222,11 @@ impl Compiler<'_> {
         } else {
             available
         };
-        if let NodeKind::Image { asset_id, fit, .. } = &n.kind {
+        if let NodeKind::Image { source, fit, .. } = &n.kind {
             let dims = self
                 .assets
                 .iter()
-                .find(|a| &a.id == asset_id)
+                .find(|a| Some(a.id.as_str()) == source.asset_id())
                 .and_then(asset_dimensions);
             if let Some((w, h)) = dims {
                 if fit == "contain" {
@@ -407,14 +410,14 @@ impl Compiler<'_> {
                             lines,
                         }
                     }
-                    NodeKind::Image { asset_id, alt, fit } => SceneKind::Image {
-                        asset_id: asset_id.clone(),
+                    NodeKind::Image { source, alt, fit } => SceneKind::Image {
+                        source: source.clone(),
                         alt: alt.clone(),
                         fit: if fit == "contain"
                             && self
                                 .assets
                                 .iter()
-                                .find(|a| &a.id == asset_id)
+                                .find(|a| Some(a.id.as_str()) == source.asset_id())
                                 .and_then(asset_dimensions)
                                 .is_some()
                         {

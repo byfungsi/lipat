@@ -49,7 +49,7 @@ export interface TextRun {
 }
 /** Agents can use plain strings or explicit rich text runs. */
 export type TextContent = string | readonly TextRun[];
-/** Leaf entrance animation; durations/delays use milliseconds, with 350/0 defaults. */
+/** Portable leaf entrance animation for browser and PPTX adapters; duration/delay use milliseconds (350/0 defaults). */
 export interface EntranceAnimation {
   readonly effect: "fade" | "rise" | "slide" | "zoom";
   readonly durationMs?: number;
@@ -64,6 +64,10 @@ export interface NodeBase {
   readonly step?: number;
   readonly animation?: EntranceAnimation;
 }
+/** Images use exactly one embedded asset or absolute HTTP(S) URL; core validation never fetches. */
+export type ImageSource =
+  | { readonly assetId: string; readonly url?: never }
+  | { readonly url: string; readonly assetId?: never };
 /** Containers express layout intent; only canvas children require explicit frames. */
 export type SlideNode = NodeBase &
   (
@@ -78,12 +82,11 @@ export type SlideNode = NodeBase &
         readonly items: readonly string[];
         readonly ordered?: boolean;
       }
-    | {
+    | (ImageSource & {
         readonly type: "image";
-        readonly assetId: string;
         readonly alt?: string;
         readonly fit?: "contain" | "cover" | "stretch";
-      }
+      })
     | {
         readonly type: "shape";
         readonly geometry?: "rect" | "roundRect" | "ellipse" | "line";
@@ -172,12 +175,11 @@ export type SceneElement = {
       readonly fill: string | null;
       readonly stroke: string | null;
     }
-  | {
+  | (ImageSource & {
       readonly type: "image";
-      readonly assetId: string;
       readonly alt: string;
       readonly fit: "contain" | "cover" | "stretch";
-    }
+    })
   | {
       readonly type: "table";
       readonly columns: readonly string[];
@@ -259,6 +261,11 @@ export type ContainerLayout =
   | { readonly type: "canvas" };
 /** Atomic serializable authoring operations form the agent tool contract. */
 export type DeckOperation =
+  | {
+      readonly type: "setImageSource";
+      readonly nodeId: string;
+      readonly source: ImageSource;
+    }
   | {
       readonly type: "setAnimation";
       readonly nodeId: string;

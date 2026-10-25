@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 const server = spawn(
@@ -20,6 +21,10 @@ const server = spawn(
 );
 let browser;
 let docsServer;
+const imageServer = createServer((_request, response) => {
+  response.setHeader("content-type", "image/png");
+  response.end(readFileSync("examples/react-demo/public/images/fold.png"));
+});
 try {
   let ready = false;
   for (let i = 0; i < 100; i++) {
@@ -395,6 +400,93 @@ try {
   )
     throw new Error("Motion changed authored SVG rotation");
   if (errors.length) throw new Error(errors.join("\n"));
+  // Browser preview loads a direct image URL; downloads resolve it into an offline asset.
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.goto("http://127.0.0.1:4178/?sample=images");
+  const remote = page.locator(
+    '.lipat-player [data-playback-id="remote-image"]',
+  );
+  await remote.waitFor({ state: "attached" });
+  const href = await remote.locator("image").getAttribute("href");
+  if (href !== "http://127.0.0.1:4178/images/fold.png")
+    throw new Error("Image URL sample source was not retained");
+  await page
+    .locator(".lipat-player")
+    .getByRole("button", { name: "Next", exact: true })
+    .click();
+  await assertPlaybackGeometry(remote, "image zoom");
+  await page.screenshot({
+    path: "artifacts/image-url-playground.png",
+    fullPage: true,
+  });
+  const imageDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export PPTX ↗" }).click();
+  await (await imageDownload).saveAs("artifacts/browser-image-url.pptx");
+  const htmlDownload = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Download HTML", exact: true })
+    .click();
+  await (await htmlDownload).saveAs("artifacts/browser-image-url.html");
+  const html = readFileSync("artifacts/browser-image-url.html", "utf8");
+  if (
+    !html.includes("data:image/png;base64,") ||
+    html.includes("/images/fold.png")
+  )
+    throw new Error("URL image HTML download was not embedded");
+  await page
+    .getByLabel("Open presentation")
+    .setInputFiles("artifacts/browser-image-url.pptx");
+  await page.getByRole("button", { name: "Document", exact: true }).click();
+  const imageDocument = JSON.parse(
+    await page.getByLabel("Deck document").inputValue(),
+  );
+  if (
+    imageDocument.assets.length !== 1 ||
+    !JSON.stringify(imageDocument).includes('"effect":"zoom"')
+  )
+    throw new Error(
+      "PPTX image bytes or native entrance were lost on browser reimport",
+    );
+  if (JSON.stringify(imageDocument).includes("/images/fold.png"))
+    throw new Error("Offline PPTX retained an external image source");
+
+  // CORS failures remain visible Result errors and never rewrite the deck's URL source.
+  await new Promise((resolve) => imageServer.listen(0, "127.0.0.1", resolve));
+  const imageAddress = imageServer.address();
+  if (!imageAddress || typeof imageAddress === "string")
+    throw new Error("Image fixture server did not start");
+  const blockedImageUrl = `http://127.0.0.1:${imageAddress.port}/no-cors.png`;
+  await page.getByLabel("Image URL", { exact: true }).fill(blockedImageUrl);
+  await page
+    .getByRole("button", { name: "Try image URL →", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Export PPTX ↗" }).click();
+  await page.getByRole("alert").filter({ hasText: "CORS" }).waitFor();
+  await page.getByRole("button", { name: "Document", exact: true }).click();
+  const failedDocument = JSON.parse(
+    await page.getByLabel("Deck document").inputValue(),
+  );
+  if (
+    failedDocument.assets.length !== 0 ||
+    !JSON.stringify(failedDocument).includes(blockedImageUrl)
+  )
+    throw new Error("Failed image export mutated source");
+  await page
+    .getByLabel("Image URL", { exact: true })
+    .fill("javascript:alert(1)");
+  await page
+    .getByRole("button", { name: "Try image URL →", exact: true })
+    .click();
+  await page.getByRole("alert").filter({ hasText: "HTTP(S)" }).waitFor();
+  await page.getByRole("button", { name: "Reset sample", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  if (
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    )
+  )
+    throw new Error("Image URL controls overflow on mobile");
+
   docsServer = spawn(
     process.execPath,
     [
@@ -457,10 +549,12 @@ try {
   });
   if (errors.length) throw new Error(errors.join("\n"));
   console.log(
-    "Chromium verified WASM editing, history, previews, Motion entrances, interruption/reduced motion, SVG rotation, PPTX import/export, documentation and mobile layout.",
+    "Chromium verified WASM editing, history, previews, Motion entrances, interruption/reduced motion, SVG rotation, direct URL images, offline embedding, CORS errors, native PPTX animation import/export, documentation and mobile layout.",
   );
 } finally {
   await browser?.close();
+  imageServer.closeAllConnections();
+  await new Promise((resolve) => imageServer.close(() => resolve()));
   await Promise.all([stopServer(server), stopServer(docsServer)]);
 }
 

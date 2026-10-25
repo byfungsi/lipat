@@ -14,7 +14,10 @@ flowchart TD
   Imported --> Lift[Explicit conversion to canvas nodes]
   Lift --> Document
   Scene --> Render[SVG / React / HTML / reveal.js]
-  Scene --> Export[PPTX writer]
+  Scene --> Export[PPTX writer: native animation timing]
+  Document --> Resolve[Optional host image resolver]
+  Scene --> Resolve
+  Resolve --> Assets[Embedded raster assets]
   Scene --> Playback[Optional browser playback adapter]
   Playback --> Motion[Motion: SVG entrance effects]
 ```
@@ -39,6 +42,7 @@ Imported PPTX produces `ImportedPresentation`: a scene, warnings and a list of s
 | TypeScript core | Subscriptions, bounded undo/redo, revisions and transient navigation; no duplicate layout/parser logic |
 | React           | Browser interactions, rendering and subscription lifetimes                                             |
 | Render/reveal   | Format-specific presentation output without changing source documents                                  |
+| Images          | Explicit asynchronous URL resolution and immutable embedding with host-provided network capability     |
 | Agent           | Framework-neutral tool schemas, compact outlines and tool argument handling                            |
 
 A shared parser/compiler in JavaScript and Rust was considered and rejected: it would duplicate behavior and weaken cross-platform guarantees. The TypeScript facade requires explicit engine initialization instead. Public TypeScript contracts mirror the Rust wire types; native-generated JSON schemas and native/WASM equivalence tests guard the serialized boundary.
@@ -61,4 +65,8 @@ Wire identities remain strings in the TypeScript authoring contract so agents ca
 
 ## Animation boundary
 
-Entrance effects are serializable leaf-node instructions validated in Rust and carried into scenes. `SlidePlaybackDriver<Surface>` defines the lifecycle without importing a browser or animation library. The optional `/motion` adapter owns SVG transforms, timing, cancellation and reduced motion; React owns navigation and mounting. The static renderer and reveal adapter already own their output formats, so importing Motion into either would impose a browser/runtime dependency on headless consumers. A separate adapter keeps that dependency optional and supports vanilla browser hosts. PPTX timing is a separate translation problem; the writer reports animation flattening. See [animations](./animations.md).
+Entrance effects are serializable leaf-node instructions validated in Rust and carried into scenes. `SlidePlaybackDriver<Surface>` defines the lifecycle without importing a browser or animation library. The optional `/motion` adapter owns SVG transforms, timing, cancellation and reduced motion; React owns navigation and mounting. The static renderer and reveal adapter already own their output formats, so importing Motion into either would impose a browser/runtime dependency on headless consumers. A separate adapter keeps that dependency optional and supports vanilla browser hosts. The independent native PPTX adapter translates the same portable instructions into PresentationML timing, without importing Motion. Easing approximations are reported. See [animations](./animations.md).
+
+## Image boundary
+
+Image source is a union of embedded asset identity and an HTTP(S) URL, validated in Rust. URL parsing, linked PPTX relationships and scene compilation need no network. A host-supplied `ImageLoader` owns fetch, byte limits and errors in the optional `/images` module. The synchronous engine cannot own browser/Node credentials, redirects, CORS or asynchronous I/O; keeping resolution separate lets native and WASM callers share one deterministic core. Resolution returns a new validated document or scene, preserving source state on failure.

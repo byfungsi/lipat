@@ -48,15 +48,22 @@ it("lets agents add, compile, remove and undo animation and step edits atomicall
   const exported = unwrap(engine.writePptx(scene));
   expect(exported.diagnostics).toContainEqual(
     expect.objectContaining({
-      code: "unsupportedAnimationExport",
+      code: "animationEasingApproximation",
       nodeId: "title",
       slideId: "s1",
     }),
   );
   expect(
-    unwrap(engine.parsePptx(exported.bytes)).scene.slides[0]?.elements[0]
-      ?.animation,
-  ).toBeUndefined();
+    unwrap(engine.parsePptx(exported.bytes)).scene.slides[0]?.elements[0],
+  ).toMatchObject({
+    step: 2,
+    animation: {
+      effect: "rise",
+      durationMs: 350,
+      delayMs: 0,
+      easing: "easeOut",
+    },
+  });
   unwrap(
     deck.apply([
       { type: "setAnimation", nodeId: "title", animation: null },
@@ -131,4 +138,114 @@ it("preserves bounded animation timing through validation and compilation", () =
     ),
     { numRuns: 30 },
   );
+});
+
+it("exports portable entrances and reveal groups through native timing without losing target geometry", () => {
+  const engine = testEngine();
+  const deck = testDeck(engine);
+  fc.assert(
+    fc.property(
+      fc.constantFrom(
+        "fade" as const,
+        "rise" as const,
+        "slide" as const,
+        "zoom" as const,
+      ),
+      fc.constantFrom(
+        "linear" as const,
+        "easeOut" as const,
+        "easeInOut" as const,
+      ),
+      fc.integer({ min: 1, max: 10000 }),
+      fc.integer({ min: 0, max: 60000 }),
+      fc.integer({ min: 0, max: 7 }),
+      fc.integer({ min: -180, max: 180 }),
+      (effect, easing, durationMs, delayMs, step, rotation) => {
+        unwrap(
+          deck.apply([
+            {
+              type: "setFrame",
+              nodeId: "title",
+              frame: { x: 40, y: 40, width: 500, height: 100, rotation },
+            },
+            {
+              type: "setAnimation",
+              nodeId: "title",
+              animation: { effect, durationMs, delayMs, easing },
+            },
+            { type: "setStep", nodeId: "title", step },
+            { type: "setStep", nodeId: "left", step },
+            {
+              type: "setAnimation",
+              nodeId: "shape",
+              animation: { effect, durationMs, delayMs, easing },
+            },
+            { type: "setStep", nodeId: "shape", step },
+          ]),
+        );
+        const scene = unwrap(deck.compile()).scene;
+        const output = unwrap(engine.writePptx(scene));
+        expect(
+          output.diagnostics
+            .filter((d) => d.code !== "emptyAnimationStep")
+            .map((d) => d.code),
+        ).toEqual(
+          easing === "linear"
+            ? []
+            : ["animationEasingApproximation", "animationEasingApproximation"],
+        );
+        const imported = unwrap(engine.parsePptx(output.bytes));
+        expect(
+          imported.diagnostics.some((d) => d.code === "unsupportedAnimation"),
+        ).toBe(false);
+        expect(imported.scene.slides[0]?.elements[0]).toMatchObject({
+          step,
+          animation: { effect, durationMs, delayMs, easing },
+          frame: scene.slides[0]?.elements[0]?.frame,
+        });
+        // A step without an entrance is a native appear build; step zero stays ordinary visible content.
+        expect(imported.scene.slides[0]?.elements[1]?.step ?? 0).toBe(step);
+        expect(imported.scene.slides[1]?.elements[0]).toMatchObject({
+          step,
+          animation: { effect, durationMs, delayMs, easing },
+        });
+      },
+    ),
+    { numRuns: 40 },
+  );
+});
+
+it("reports native timing quantization and rejects excessive reveal steps before export", () => {
+  const engine = testEngine();
+  const deck = testDeck(engine);
+  unwrap(
+    deck.apply([
+      {
+        type: "setAnimation",
+        nodeId: "title",
+        animation: {
+          effect: "fade",
+          durationMs: 0,
+          delayMs: 1.4,
+          easing: "linear",
+        },
+      },
+    ]),
+  );
+  const output = unwrap(engine.writePptx(unwrap(deck.compile()).scene));
+  expect(output.diagnostics).toContainEqual(
+    expect.objectContaining({
+      code: "animationTimingQuantized",
+      nodeId: "title",
+    }),
+  );
+  expect(
+    unwrap(engine.parsePptx(output.bytes)).scene.slides[0]?.elements[0]
+      ?.animation,
+  ).toMatchObject({ durationMs: 1, delayMs: 1 });
+  const revision = deck.getState().revision;
+  expect(
+    deck.apply([{ type: "setStep", nodeId: "title", step: 10001 }]).ok,
+  ).toBe(false);
+  expect(deck.getState().revision).toBe(revision);
 });

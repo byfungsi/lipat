@@ -156,6 +156,7 @@ pub struct Node {
     #[serde(default)]
     pub style: TextStyle,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(max = 10000))]
     pub step: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub animation: Option<EntranceAnimation>,
@@ -204,6 +205,78 @@ fn default_fit() -> String {
 fn default_geometry() -> String {
     "rect".into()
 }
+/// Exactly one image source, serialized inline as assetId or an absolute HTTP(S) URL.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged, try_from = "ImageSourceWire")]
+pub enum ImageSource {
+    Asset {
+        #[serde(rename = "assetId")]
+        asset_id: String,
+    },
+    Url {
+        url: String,
+    },
+}
+impl JsonSchema for ImageSource {
+    fn schema_name() -> String {
+        "ImageSource".into()
+    }
+    fn json_schema(_: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        serde_json::from_value(serde_json::json!({
+            "description": "Exactly one embedded assetId or absolute HTTP(S) image URL",
+            "oneOf": [
+                { "type":"object", "properties": {"assetId":{"type":"string"}}, "required":["assetId"] },
+                { "type":"object", "properties": {"url":{"type":"string","format":"uri","maxLength":8192,"pattern":"^[hH][tT][tT][pP][sS]?://"}}, "required":["url"] }
+            ]
+        })).expect("Image source schema is valid")
+    }
+}
+#[derive(Deserialize)]
+struct ImageSourceWire {
+    #[serde(default, rename = "assetId")]
+    asset_id: Option<String>,
+    #[serde(default)]
+    url: Option<String>,
+}
+impl TryFrom<ImageSourceWire> for ImageSource {
+    type Error = String;
+    fn try_from(wire: ImageSourceWire) -> std::result::Result<Self, Self::Error> {
+        match (wire.asset_id, wire.url) {
+            (Some(asset_id), None) => Ok(Self::Asset { asset_id }),
+            (None, Some(url)) => Ok(Self::Url { url }),
+            _ => Err("Image source requires exactly one of assetId or url".into()),
+        }
+    }
+}
+impl ImageSource {
+    /// Resolve an embedded asset identity without treating URL sources as missing assets.
+    pub fn asset_id(&self) -> Option<&str> {
+        match self {
+            Self::Asset { asset_id } => Some(asset_id),
+            Self::Url { .. } => None,
+        }
+    }
+}
+/// URLs remain opaque source data; validating them never performs a network request.
+pub fn check_image_url(value: &str) -> Result<()> {
+    let parsed = url::Url::parse(value)
+        .map_err(|_| LipatError::new("invalidDocument", "Image URL must be absolute HTTP(S)"))?;
+    if value.len() > 8192
+        || !(value.to_ascii_lowercase().starts_with("http://")
+            || value.to_ascii_lowercase().starts_with("https://"))
+        || value.chars().any(|c| c.is_control() || c.is_whitespace())
+        || !matches!(parsed.scheme(), "http" | "https")
+        || parsed.host_str().is_none()
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+    {
+        return Err(LipatError::new(
+            "invalidDocument",
+            "Image URL must be HTTP(S), without whitespace or credentials",
+        ));
+    }
+    Ok(())
+}
 #[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum NodeKind {
@@ -221,8 +294,8 @@ pub enum NodeKind {
         ordered: bool,
     },
     Image {
-        #[serde(rename = "assetId")]
-        asset_id: String,
+        #[serde(flatten)]
+        source: ImageSource,
         #[serde(default)]
         alt: String,
         #[serde(default = "default_fit")]
@@ -336,6 +409,7 @@ pub struct SceneElement {
     #[serde(default)]
     pub style: TextStyle,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(max = 10000))]
     pub step: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub animation: Option<EntranceAnimation>,
@@ -358,8 +432,8 @@ pub enum SceneKind {
         stroke: Option<String>,
     },
     Image {
-        #[serde(rename = "assetId")]
-        asset_id: String,
+        #[serde(flatten)]
+        source: ImageSource,
         alt: String,
         fit: String,
     },
@@ -554,6 +628,12 @@ fn check_node(
         check_frame(f)?;
     }
     check_style(&n.style)?;
+    if n.step.is_some_and(|step| step > 10000) {
+        return Err(LipatError::new(
+            "resourceLimit",
+            "Reveal step must be between 0 and 10000",
+        ));
+    }
     if let Some(animation) = &n.animation {
         if n.children().is_some()
             || !animation.duration_ms.is_finite()
@@ -592,10 +672,15 @@ fn check_node(
             check_text(text)?;
         }
         NodeKind::Text { text } => check_text(text)?,
-        NodeKind::Image { asset_id, fit, .. } => {
-            if !assets.contains(asset_id)
-                || !matches!(fit.as_str(), "contain" | "cover" | "stretch")
-            {
+        NodeKind::Image { source, fit, .. } => {
+            match source {
+                ImageSource::Asset { asset_id } if !assets.contains(asset_id) => {
+                    return Err(LipatError::new("invalidDocument", "Missing image asset"));
+                }
+                ImageSource::Url { url } => check_image_url(url)?,
+                _ => {}
+            }
+            if !matches!(fit.as_str(), "contain" | "cover" | "stretch") {
                 return Err(LipatError::new(
                     "invalidDocument",
                     "Missing image asset or invalid image fit",
@@ -767,8 +852,8 @@ pub fn scene_to_document(scene: &SlideScene) -> DeckDocument {
                                         fill: fill.clone(),
                                         stroke: stroke.clone(),
                                     },
-                                    SceneKind::Image { asset_id, alt, fit } => NodeKind::Image {
-                                        asset_id: asset_id.clone(),
+                                    SceneKind::Image { source, alt, fit } => NodeKind::Image {
+                                        source: source.clone(),
                                         alt: alt.clone(),
                                         fit: fit.clone(),
                                     },

@@ -64,4 +64,19 @@ it("native and WASM produce byte-for-byte equal JSON layout and edit results", (
   expect(native({ operation: "compile", document: animated, options })).toEqual(
     engine.compile(animated, options),
   );
+  const scene = unwrap(engine.compile(animated, options)).scene;
+  const output = unwrap(engine.writePptx(scene));
+  expect(native({ operation: "writePptx", scene })).toEqual({
+    ok: true,
+    value: {
+      bytes: Buffer.from(output.bytes).toString("base64"),
+      diagnostics: output.diagnostics,
+    },
+  });
+  expect(
+    native({
+      operation: "parsePptx",
+      bytes: Buffer.from(output.bytes).toString("base64"),
+    }),
+  ).toEqual(engine.parsePptx(output.bytes));
 });

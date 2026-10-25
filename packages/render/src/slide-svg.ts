@@ -73,8 +73,11 @@ function elementSvg(
     }
     case "image": {
       const asset = scene.assets.find((a) => a.id === element.assetId);
-      if (asset)
-        body = `<image x="${f.x}" y="${f.y}" width="${f.width}" height="${f.height}" href="data:${escapeSlideMarkup(asset.mimeType)};base64,${escapeSlideMarkup(asset.data)}" preserveAspectRatio="${element.fit === "stretch" ? "none" : element.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"}"><title>${escapeSlideMarkup(element.alt)}</title></image>`;
+      const source =
+        element.url ??
+        (asset ? `data:${asset.mimeType};base64,${asset.data}` : undefined);
+      if (source)
+        body = `<image x="${f.x}" y="${f.y}" width="${f.width}" height="${f.height}" href="${escapeSlideMarkup(source)}" preserveAspectRatio="${element.fit === "stretch" ? "none" : element.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"}"><title>${escapeSlideMarkup(element.alt)}</title></image>`;
       break;
     }
     case "table": {

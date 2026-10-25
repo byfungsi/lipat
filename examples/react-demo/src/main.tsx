@@ -1,10 +1,12 @@
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createLipat, createDeck, fromMarkdown } from "@byfungsi/lipat";
-import type { DeckInput, LipatEngine, LipatResult } from "@byfungsi/lipat";
+import type { LipatEngine } from "@byfungsi/lipat";
 import { DeckEditor, DeckPreview, DeckPlayer } from "@byfungsi/lipat/react";
 import { renderDeckHtml } from "@byfungsi/lipat/render";
 import { createMotionPlayback } from "@byfungsi/lipat/motion";
+import { createImageLoader, embedSceneImages } from "@byfungsi/lipat/images";
+import { createImageDeck } from "./image-deck";
 import { createAgentTools } from "@byfungsi/lipat/agent";
 import type { DeckRuntime } from "@byfungsi/lipat/core";
 import wasmUrl from "@byfungsi/lipat/lipat.wasm?url";
@@ -12,6 +14,8 @@ import { sampleDeck } from "./sample-deck";
 import { animationDeck } from "./animation-deck";
 import "./style.css";
 const motionPlayback = createMotionPlayback();
+const imageLoader = createImageLoader(fetch);
+const sampleImageUrl = new URL("images/fold.png", window.location.href).href;
 function download(data: BlobPart, name: string, type: string) {
   const url = URL.createObjectURL(new Blob([data], { type }));
   const a = document.createElement("a");
@@ -33,6 +37,8 @@ function App({
     [mode, setMode] = useState<"edit" | "present" | "source">(initialMode),
     [playerSession, setPlayerSession] = useState(0),
     [error, setError] = useState(""),
+    [exporting, setExporting] = useState(false),
+    [imageUrl, setImageUrl] = useState(sampleImageUrl),
     [source, setSource] = useState(
       JSON.stringify(initial.exportDocument(), null, 2),
     ),
@@ -49,7 +55,7 @@ function App({
       setError("");
     } else setError(result.error.message);
   }
-  function exportDeck(format: "pptx" | "html" | "json") {
+  async function exportDeck(format: "pptx" | "html" | "json") {
     if (format === "json") {
       download(
         JSON.stringify(deck.exportDocument(), null, 2),
@@ -63,24 +69,39 @@ function App({
       setError(compiled.error.message);
       return;
     }
-    if (format === "html")
-      download(
-        renderDeckHtml(compiled.value.scene),
-        "presentation.html",
-        "text/html",
-      );
-    else {
-      const r = engine.writePptx(compiled.value.scene);
-      if (r.ok) {
+    setExporting(true);
+    setError("");
+    try {
+      const embedded = await embedSceneImages(compiled.value.scene, {
+        engine,
+        loader: imageLoader,
+      });
+      if (!embedded.ok) {
+        setError(embedded.error.message);
+        return;
+      }
+      if (format === "html") {
         download(
-          new Uint8Array(r.value.bytes).buffer,
-          "presentation.pptx",
-          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          renderDeckHtml(embedded.value),
+          "presentation.html",
+          "text/html",
         );
-        setError(r.value.diagnostics.map((d) => d.message).join("\n"));
-      } else setError(r.error.message);
+      } else {
+        const r = engine.writePptx(embedded.value);
+        if (r.ok) {
+          download(
+            new Uint8Array(r.value.bytes).buffer,
+            "presentation.pptx",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          );
+          setError(r.value.diagnostics.map((d) => d.message).join("\n"));
+        } else setError(r.error.message);
+      }
+    } finally {
+      setExporting(false);
     }
   }
+
   return (
     <>
       <header className="app-header">
@@ -129,7 +150,9 @@ function App({
               }}
             />
           </label>
-          <button onClick={() => exportDeck("pptx")}>Export PPTX ↗</button>
+          <button disabled={exporting} onClick={() => exportDeck("pptx")}>
+            {exporting ? "Preparing…" : "Export PPTX ↗"}
+          </button>
         </div>
       </header>
       <main>
@@ -166,6 +189,14 @@ function App({
               }}
             >
               Animation sample
+            </button>
+            <button
+              onClick={() => {
+                replace(createImageDeck(imageUrl));
+                setMode("present");
+              }}
+            >
+              Image sample
             </button>
           </nav>
         </div>
@@ -250,8 +281,31 @@ function App({
               Apply agent edit →
             </button>
             <pre>{`{ type: "updateText",\n  nodeId: "headline",\n  text: "Your next idea" }`}</pre>
+            <label>
+              Image URL
+              <input
+                aria-label="Image URL"
+                type="url"
+                value={imageUrl}
+                onChange={(event) => setImageUrl(event.target.value)}
+              />
+            </label>
+            <button
+              onClick={() => {
+                replace(createImageDeck(imageUrl));
+                setMode("present");
+              }}
+            >
+              Try image URL →
+            </button>
+            <p>
+              Use a direct image link. PPTX and HTML downloads embed the image;
+              its server must allow browser access.
+            </p>
             <div className="export-actions">
-              <button onClick={() => exportDeck("html")}>Download HTML</button>
+              <button disabled={exporting} onClick={() => exportDeck("html")}>
+                Download HTML
+              </button>
               <button onClick={() => exportDeck("json")}>Download JSON</button>
               <button onClick={() => replace(sampleDeck)}>Reset sample</button>
             </div>
@@ -283,19 +337,25 @@ async function start() {
       throw new Error(`WASM request failed: ${response.status}`);
     const engine = createLipat(new Uint8Array(await response.arrayBuffer()));
     if (!engine.ok) throw new Error(engine.error.message);
-    const showAnimations =
-      new URLSearchParams(window.location.search).get("sample") ===
-      "animations";
-    const deck = createDeck(showAnimations ? animationDeck : sampleDeck, {
-      engine: engine.value,
-    });
+    const sample = new URLSearchParams(window.location.search).get("sample");
+    const showSample = sample === "animations" || sample === "images";
+    const deck = createDeck(
+      sample === "animations"
+        ? animationDeck
+        : sample === "images"
+          ? createImageDeck(sampleImageUrl)
+          : sampleDeck,
+      {
+        engine: engine.value,
+      },
+    );
     if (!deck.ok) throw new Error(deck.error.message);
     createRoot(root).render(
       <StrictMode>
         <App
           engine={engine.value}
           initial={deck.value}
-          initialMode={showAnimations ? "present" : "edit"}
+          initialMode={showSample ? "present" : "edit"}
         />
       </StrictMode>,
     );

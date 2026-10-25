@@ -1,3 +1,4 @@
+use crate::animation_timing::write_slide_timing;
 use crate::package::*;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use lipat_model::*;
@@ -14,7 +15,28 @@ fn put(parts: &mut Parts, path: impl Into<String>, xml: String) {
     parts.insert(path.into(), xml.into_bytes());
 }
 fn rels(items: &[(String, String, String)]) -> String {
-    format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">{}</Relationships>",items.iter().map(|(id,kind,target)|format!("<Relationship Id=\"{}\" Type=\"{R}/{kind}\" Target=\"{}\"/>",escape_xml(id),escape_xml(target))).collect::<String>())
+    rels_with_external(items, &std::collections::BTreeSet::new())
+}
+fn rels_with_external(
+    items: &[(String, String, String)],
+    external: &std::collections::BTreeSet<String>,
+) -> String {
+    let entries = items
+        .iter()
+        .map(|(id, kind, target)| {
+            let mode = if external.contains(id) {
+                " TargetMode=\"External\""
+            } else {
+                ""
+            };
+            format!(
+                "<Relationship Id=\"{}\" Type=\"{R}/{kind}\" Target=\"{}\"{mode}/>",
+                escape_xml(id),
+                escape_xml(target)
+            )
+        })
+        .collect::<String>();
+    format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">{entries}</Relationships>")
 }
 fn xfrm(f: Frame, prefix: &str) -> String {
     format!("<{prefix}:xfrm rot=\"{}\"><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"{}\" cy=\"{}\"/></{prefix}:xfrm>",(f.rotation*60000.).round() as i64,(f.x*12700.).round() as i64,(f.y*12700.).round() as i64,(f.width*12700.).round() as i64,(f.height*12700.).round() as i64)
@@ -151,7 +173,7 @@ fn resolved_paragraphs(
         cursor = end.min(text.len());
     }
     let output = paragraphs(&lines.join("\n"), &resolved, style);
-    output.replace("</a:pPr>",&format!("<a:lnSpc><a:spcPts val=\"{}\"/></a:lnSpc><a:spcBef><a:spcPts val=\"0\"/></a:spcBef><a:spcAft><a:spcPts val=\"0\"/></a:spcAft></a:pPr>",(line_height*100.).round() as i64))
+    output.replace("<a:defRPr", &format!("<a:lnSpc><a:spcPts val=\"{}\"/></a:lnSpc><a:spcBef><a:spcPts val=\"0\"/></a:spcBef><a:spcAft><a:spcPts val=\"0\"/></a:spcAft><a:defRPr", (line_height * 100.).round() as i64))
 }
 fn image_placement(frame: Frame, fit: &str, asset: Option<&Asset>) -> (Frame, String, bool) {
     let Some((w, h)) = asset.and_then(asset_dimensions) else {
@@ -198,6 +220,24 @@ fn group_start() -> String {
 /// Export a canonical scene as an interoperable PPTX; arbitrary source parts are not preserved.
 pub fn write_pptx(scene: &SlideScene) -> Result<ExportedPresentation> {
     check_scene(scene)?;
+    let total_steps: u64 = scene
+        .slides
+        .iter()
+        .map(|slide| {
+            slide
+                .elements
+                .iter()
+                .map(|element| element.step.unwrap_or(0) as u64)
+                .max()
+                .unwrap_or(0)
+        })
+        .sum();
+    if total_steps > 100000 {
+        return Err(LipatError::new(
+            "resourceLimit",
+            "PPTX animation sequences exceed 100000 reveal steps",
+        ));
+    }
     let mut parts = Parts::new();
     let mut diagnostics = vec![];
     let mut overrides = vec![
@@ -233,36 +273,63 @@ pub fn write_pptx(scene: &SlideScene) -> Result<ExportedPresentation> {
         media.insert(asset.id.clone(), path);
     }
     for (i, s) in scene.slides.iter().enumerate() {
+        let steps: std::collections::BTreeSet<_> = s
+            .elements
+            .iter()
+            .filter_map(|e| e.step.filter(|step| *step > 0))
+            .collect();
+        if steps
+            .last()
+            .is_some_and(|last| *last as usize > steps.len())
+        {
+            diagnostics.push(Diagnostic::warning("emptyAnimationStep", "Empty reveal steps are timing placeholders; some presentation applications compact them", Some(s.id.clone()), None));
+        }
         let mut elements = String::new();
         let mut slide_rels = vec![(
             "rIdLayout".into(),
             "slideLayout".into(),
             "../slideLayouts/slideLayout1.xml".into(),
         )];
+        let mut external_image_rels = std::collections::BTreeSet::new();
         for (j, e) in s.elements.iter().enumerate() {
             let id = j + 2;
             let name = escape_xml(&e.id);
             match &e.kind{
  SceneKind::Text{text,runs,lines,line_height}=>elements.push_str(&format!("<p:sp><p:nvSpPr><p:cNvPr id=\"{id}\" name=\"{name}\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr>{}<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap=\"none\" lIns=\"0\" rIns=\"0\" tIns=\"0\" bIns=\"0\"/><a:lstStyle/>{}</p:txBody></p:sp>",xfrm(e.frame,"a"),resolved_paragraphs(text,runs,lines,&e.style,*line_height))),
  SceneKind::Shape{geometry,fill:shape_fill,stroke}=>elements.push_str(&format!("<p:sp><p:nvSpPr><p:cNvPr id=\"{id}\" name=\"{name}\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>{}<a:prstGeom prst=\"{geometry}\"><a:avLst/></a:prstGeom>{}<a:ln>{}</a:ln></p:spPr></p:sp>",xfrm(e.frame,"a"),fill(shape_fill),fill(stroke))),
- SceneKind::Image{asset_id,alt,fit}=>{let path=media.get(asset_id).ok_or_else(||LipatError::new("invalidScene","Missing image asset"))?;let rid=format!("rIdImage{j}");slide_rels.push((rid.clone(),"image".into(),format!("../{path}")));let(image_frame,crop,missing_dimensions)=image_placement(e.frame,fit,scene.assets.iter().find(|a| &a.id==asset_id));if missing_dimensions{diagnostics.push(Diagnostic::warning("imageFitFlattened","Image fit cannot be reproduced without intrinsic raster dimensions",Some(s.id.clone()),Some(e.id.clone())));}elements.push_str(&format!("<p:pic><p:nvPicPr><p:cNvPr id=\"{id}\" name=\"{name}\" descr=\"{}\"/><p:cNvPicPr><a:picLocks noChangeAspect=\"1\"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed=\"{rid}\"/>{crop}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>{}<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></p:spPr></p:pic>",escape_xml(alt),xfrm(image_frame,"a")));},
+ SceneKind::Image { source, alt, fit } => {
+    let rid = format!("rIdImage{j}");
+    let (reference, asset) = match source {
+        ImageSource::Asset { asset_id } => {
+            let path = media.get(asset_id).ok_or_else(|| LipatError::new("invalidScene", "Missing image asset"))?;
+            slide_rels.push((rid.clone(), "image".into(), format!("../{path}")));
+            ("embed", scene.assets.iter().find(|a| &a.id == asset_id))
+        }
+        ImageSource::Url { url } => {
+            slide_rels.push((rid.clone(), "image".into(), url.clone()));
+            external_image_rels.insert(rid.clone());
+            diagnostics.push(Diagnostic::warning("linkedImageExport", "Image URL exported as an external link; embed URL images for offline delivery", Some(s.id.clone()), Some(e.id.clone())));
+            ("link", None)
+        }
+    };
+    let (image_frame, crop, missing_dimensions) = image_placement(e.frame, fit, asset);
+    if missing_dimensions {
+        diagnostics.push(Diagnostic::warning("imageFitFlattened", "Image fit cannot be reproduced without intrinsic raster dimensions", Some(s.id.clone()), Some(e.id.clone())));
+    }
+    elements.push_str(&format!("<p:pic><p:nvPicPr><p:cNvPr id=\"{id}\" name=\"{name}\" descr=\"{}\"/><p:cNvPicPr><a:picLocks noChangeAspect=\"1\"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:{reference}=\"{rid}\"/>{crop}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>{}<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></p:spPr></p:pic>", escape_xml(alt), xfrm(image_frame, "a")));
+ },
  SceneKind::Table{columns,rows}=>{let grid=columns.iter().map(|_|format!("<a:gridCol w=\"{}\"/>",(e.frame.width/columns.len() as f64*12700.).round() as i64)).collect::<String>();let cells=std::iter::once(columns).chain(rows).map(|r|format!("<a:tr h=\"{}\">{}</a:tr>",(e.frame.height/(rows.len()+1) as f64*12700.).round() as i64,r.iter().map(|c|format!("<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>{}</a:txBody><a:tcPr/></a:tc>",paragraphs(c,&[],&e.style))).collect::<String>())).collect::<String>();elements.push_str(&format!("<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id=\"{id}\" name=\"{name}\"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>{}<a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/table\"><a:tbl><a:tblPr firstRow=\"1\" bandRow=\"1\"/><a:tblGrid>{grid}</a:tblGrid>{cells}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>",xfrm(e.frame,"p")));}
  }
-            if e.step.is_some() {
-                diagnostics.push(Diagnostic::warning(
-                    "unsupportedFragmentExport",
-                    "Incremental reveal steps are flattened in PPTX export",
-                    Some(s.id.clone()),
-                    Some(e.id.clone()),
-                ));
+            if e.animation
+                .as_ref()
+                .is_some_and(|a| a.easing != AnimationEasing::Linear)
+            {
+                diagnostics.push(Diagnostic::warning("animationEasingApproximation", "PowerPoint uses native acceleration/deceleration in place of the browser cubic-bezier curve", Some(s.id.clone()), Some(e.id.clone())));
             }
-            if e.animation.is_some() {
-                diagnostics.push(Diagnostic::warning(
-                    "unsupportedAnimationExport",
-                    "Browser entrance animations are flattened to their final state in PPTX export",
-                    Some(s.id.clone()),
-                    Some(e.id.clone()),
-                ));
+            if e.animation.as_ref().is_some_and(|a| {
+                a.duration_ms != a.duration_ms.round().max(1.) || a.delay_ms != a.delay_ms.round()
+            }) {
+                diagnostics.push(Diagnostic::warning("animationTimingQuantized", "PowerPoint animation timing is rounded to whole milliseconds with a minimum 1 ms duration", Some(s.id.clone()), Some(e.id.clone())));
             }
         }
         if !s.notes.is_empty() {
@@ -287,16 +354,17 @@ pub fn write_pptx(scene: &SlideScene) -> Result<ExportedPresentation> {
                 )]),
             );
         }
+        let timing = write_slide_timing(s, scene.size);
         let n = i + 1;
         overrides.push((
             format!("/ppt/slides/slide{n}.xml"),
             "presentationml.slide+xml".into(),
         ));
-        put(&mut parts,format!("ppt/slides/slide{n}.xml"),format!("<p:sld xmlns:p=\"{P}\" xmlns:a=\"{A}\" xmlns:r=\"{R}\" show=\"{}\"><p:cSld name=\"{}\"><p:bg><p:bgPr>{}<a:effectLst/></p:bgPr></p:bg><p:spTree>{}{elements}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>",if s.hidden{0}else{1},escape_xml(&s.title),fill(&Some(s.background.clone())),group_start()));
+        put(&mut parts,format!("ppt/slides/slide{n}.xml"),format!("<p:sld xmlns:p=\"{P}\" xmlns:a=\"{A}\" xmlns:r=\"{R}\" show=\"{}\"><p:cSld name=\"{}\"><p:bg><p:bgPr>{}<a:effectLst/></p:bgPr></p:bg><p:spTree>{}{elements}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>{timing}</p:sld>",if s.hidden{0}else{1},escape_xml(&s.title),fill(&Some(s.background.clone())),group_start()));
         put(
             &mut parts,
             format!("ppt/slides/_rels/slide{n}.xml.rels"),
-            rels(&slide_rels),
+            rels_with_external(&slide_rels, &external_image_rels),
         );
     }
     put(

@@ -10,3 +10,5 @@ artifacts/
 
 .venv/
 docs/public/
+tools/pptx-validator/bin/
+tools/pptx-validator/obj/

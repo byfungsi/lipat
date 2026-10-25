@@ -1,4 +1,5 @@
 //! Independent PPTX byte adapter. Does not depend on the authoring or layout engines.
+mod animation_timing;
 mod package;
 mod read_pptx;
 mod write_pptx;
