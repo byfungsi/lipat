@@ -23,7 +23,22 @@ import {
 
 `DeckEditor` composes these pieces. `useDeck`, `useDeckState`, `useDeckScene` and `useDeckReadOnly` support custom interfaces. The provider does not own/dispose the runtime. Subscriptions clean up on unmount; the host disposes the runtime when it is no longer needed.
 
-The canvas supports pointer selection, Shift additive selection, drag movement, a resize handle and arrow-key nudges (Shift moves 10 points). A drag/resize commits one history step; Escape cancels an active gesture. The inspector edits text and speaker notes. Text replacement produces plain text; use operations with rich runs to retain explicit per-run formatting.
+The canvas supports pointer selection, Shift additive selection, drag movement, a resize handle and arrow-key nudges (Shift moves 10 points). A drag/resize commits one history step; Escape cancels an active gesture. The inspector edits content, rich text runs, formatting, tables, image/shape options, layout, frames, rotation and portable animation settings.
+
+For the built-in editor, import its optional skin and supply host persistence:
+
+```tsx
+import { DeckEditor } from "@byfungsi/lipat/react";
+import "@byfungsi/lipat/editor.css";
+
+<DeckEditor
+  deck={deck}
+  onSave={savePresentation}
+  resolveImage={prepareImage}
+/>;
+```
+
+This includes slide/content creation, palette and file drops, image URLs, layers, undo/redo, notes/themes, Save status and animation preview/replay. The default animation driver uses browser Web Animations; Motion remains an optional override. Save and image processing belong to the host: see the [editor guide](./editor.md) for asynchronous uploads/commands and cancellation.
 
 Use `readOnly` on the provider or convenience editor for navigable read-only content. UI controls obey this mode; the runtime remains an application capability, so read-only rendering is not an authorization boundary.
 

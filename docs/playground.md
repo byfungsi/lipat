@@ -6,6 +6,8 @@ import {withBase} from 'vitepress';
 
 Create, edit, import and export with the real browser WebAssembly engine. Files stay in your browser; the playground does not upload them to a service.
 
+The built-in editor includes slide and content controls, palette/file drag and drop, movement/resizing, layers, rich-text and table properties, themes, notes, and animation timing. Select an element to edit its properties, then choose **Apply properties**. **Preview animations** and **Replay** show the current slide's reveal sequence. The playground's **Save** button downloads the document through the same host callback your app can use for its own storage. See [embedding the editor](./editor.md).
+
 Choose **Animation sample** to compare fade, rise, slide and zoom entrances. Press **Next** or the right arrow for each reveal; use **Previous** and advance again to replay. **Document** shows the editable animation JSON. Effects respect your device's reduced-motion setting.
 
 PPTX downloads retain the supported native animations. Choose **Image sample**, or enter a direct **Image URL** and choose **Try image URL**. PPTX and HTML downloads embed URL images; the image server must allow browser fetches.
