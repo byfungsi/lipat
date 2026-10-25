@@ -257,7 +257,7 @@ try {
       .click();
     await page.waitForFunction((id) => {
       const element = document.querySelector(
-        `[data-playback-id="motion-${id}"]`,
+        `.lipat-player [data-playback-id="motion-${id}"]`,
       );
       return (
         element &&
@@ -265,6 +265,7 @@ try {
         Number(getComputedStyle(element).opacity) === 1
       );
     }, effect);
+    await assertPlaybackGeometry(target, effect);
   }
   await page
     .getByRole("button", { name: "Animation sample", exact: true })
@@ -286,7 +287,7 @@ try {
   await page.waitForFunction(() => {
     return ["fade", "rise", "slide", "zoom"].every((effect) => {
       const element = document.querySelector(
-        `[data-playback-id="motion-${effect}"]`,
+        `.lipat-player [data-playback-id="motion-${effect}"]`,
       );
       return (
         element &&
@@ -295,6 +296,33 @@ try {
       );
     });
   });
+  for (const effect of ["fade", "rise", "slide", "zoom"])
+    await assertPlaybackGeometry(
+      page.locator(`.lipat-player [data-playback-id="motion-${effect}"]`),
+      effect,
+    );
+  await page
+    .locator(".lipat-player")
+    .getByRole("button", { name: "Previous", exact: true })
+    .click();
+  await page
+    .locator(".lipat-player")
+    .getByRole("button", { name: "Next", exact: true })
+    .click();
+  await page.waitForFunction(() => {
+    const element = document.querySelector(
+      '.lipat-player [data-playback-id="motion-zoom"]',
+    );
+    return (
+      element &&
+      getComputedStyle(element).visibility === "visible" &&
+      Number(getComputedStyle(element).opacity) === 1
+    );
+  });
+  await assertPlaybackGeometry(
+    page.locator('.lipat-player [data-playback-id="motion-zoom"]'),
+    "zoom replay",
+  );
   await page.screenshot({
     path: "artifacts/animation-playground.png",
     fullPage: true,
@@ -446,4 +474,41 @@ async function stopServer(child) {
     });
     child.kill("SIGTERM");
   });
+}
+
+async function assertPlaybackGeometry(target, effect) {
+  await target.evaluate(async (element) => {
+    await Promise.all(
+      element.getAnimations().map((animation) => animation.finished),
+    );
+  });
+  const geometry = await target.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const transform = getComputedStyle(element).transform;
+    const matrix =
+      transform === "none"
+        ? new DOMMatrixReadOnly()
+        : new DOMMatrixReadOnly(transform);
+    // Allow browser float serialization noise while rejecting scale loss or displacement.
+    const atRest =
+      matrix.is2D &&
+      [
+        matrix.a - 1,
+        matrix.b,
+        matrix.c,
+        matrix.d - 1,
+        matrix.e,
+        matrix.f,
+      ].every((value) => Math.abs(value) < 0.0001);
+    return {
+      width: bounds.width,
+      height: bounds.height,
+      transform,
+      atRest,
+    };
+  });
+  if (geometry.width < 1 || geometry.height < 1 || !geometry.atRest)
+    throw new Error(
+      `Animation ${effect} did not retain its final geometry: ${JSON.stringify(geometry)}`,
+    );
 }

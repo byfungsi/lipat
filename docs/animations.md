@@ -4,6 +4,8 @@ Lipat keeps animation instructions in JSON and plays them through an optional [M
 
 Available in `@byfungsi/lipat` **0.2.0** and later. [Open the animation sample](./playground/index.html?sample=animations), or choose **Animation sample** in the playground. Advance four times to see fade, rise, slide and zoom; go backward and advance again to replay. Choose **Document** to inspect or edit the JSON. Device reduced-motion preferences reveal the content immediately.
 
+Use **0.2.1 or newer**: it fixes transformed entrances collapsing to zero size after playback in 0.2.0. Browser regression checks verify rendered geometry after each effect and after replay.
+
 ## Author an entrance
 
 Add `animation` to a leaf node (text, heading, list, code, image, shape or table). `step` controls when it appears: omitted/zero means slide entry, positive integers mean subsequent reveal steps. Nodes at the same step enter together.
@@ -30,7 +32,7 @@ Effects are `fade`, `rise` (24 points upward into position), `slide` (32 points 
 Install `motion` alongside React when using the optional `/motion` entrypoint:
 
 ```sh
-npm install @byfungsi/lipat@^0.2.0 motion@^14.6.0 react react-dom
+npm install @byfungsi/lipat@^0.2.1 motion@^14.6.0 react react-dom
 ```
 
 ```tsx

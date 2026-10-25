@@ -6,6 +6,8 @@ Tests exercise real interfaces: TypeScript authoring through actual WASM, indepe
 
 `npm run verify:browser` starts the production demo, exercises imports, edits, dragging, history, presentation/preview navigation and exports in Chromium, checks mobile overflow and saves screenshots to ignored `artifacts/`. Install Chromium with `npx playwright install chromium` if needed.
 
+Motion playback checks include nonzero rendered bounds and an identity transform after each entrance and replay. Visibility and opacity alone cannot detect SVG content collapsed by a zero transform matrix.
+
 For independent writer interoperability:
 
 ```sh

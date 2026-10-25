@@ -10,16 +10,19 @@ export interface MotionPlaybackOptions {
   readonly reducedMotion?: "user" | "always" | "never";
 }
 
-function entranceTransform(effect: EntranceAnimation["effect"]): string {
+function entranceTransforms(effect: EntranceAnimation["effect"]): {
+  readonly initial: string;
+  readonly rest: string;
+} | null {
   switch (effect) {
     case "fade":
-      return "none";
+      return null;
     case "rise":
-      return "translateY(24px)";
+      return { initial: "translateY(24px)", rest: "translateY(0px)" };
     case "slide":
-      return "translateX(-32px)";
+      return { initial: "translateX(-32px)", rest: "translateX(0px)" };
     case "zoom":
-      return "scale(0.95)";
+      return { initial: "scale(0.95)", rest: "scale(1)" };
   }
 }
 
@@ -85,7 +88,16 @@ export function createMotionPlayback(
           target.style.transformOrigin = "center";
           // Static rotation lives on the outer SVG group; Motion owns only this inner group.
           target.style.opacity = "0";
-          target.style.transform = entranceTransform(animation.effect);
+          const transforms = entranceTransforms(animation.effect);
+          target.style.transform = transforms?.initial ?? "none";
+          // Explicit matching endpoints avoid Motion deriving a zero matrix from computed
+          // SVG transforms when resolving "none". Fade owns opacity only.
+          const keyframes = transforms
+            ? {
+                opacity: [0, 1],
+                transform: [transforms.initial, transforms.rest],
+              }
+            : { opacity: [0, 1] };
           const ease =
             animation.easing === "linear"
               ? ("linear" as const)
@@ -94,15 +106,11 @@ export function createMotionPlayback(
                 : ([0.23, 1, 0.32, 1] as const);
           running.set(
             element.id,
-            animate(
-              target,
-              { opacity: 1, transform: "none" },
-              {
-                duration: (animation.durationMs ?? 350) / 1000,
-                delay: (animation.delayMs ?? 0) / 1000,
-                ease,
-              },
-            ),
+            animate(target, keyframes, {
+              duration: (animation.durationMs ?? 350) / 1000,
+              delay: (animation.delayMs ?? 0) / 1000,
+              ease,
+            }),
           );
         }
         currentStep = step;
