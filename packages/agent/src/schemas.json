@@ -42,6 +42,130 @@
     "title": "CompileOptions",
     "type": "object"
   },
+  "diagnostic": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "DiagnosticBounds": {
+        "description": "Required and available rectangles use the same point coordinate space; overflow is nonnegative.",
+        "properties": {
+          "available": {
+            "$ref": "#/definitions/Frame"
+          },
+          "kind": {
+            "$ref": "#/definitions/DiagnosticBoundsKind"
+          },
+          "measured": {
+            "$ref": "#/definitions/Frame"
+          },
+          "overflow": {
+            "$ref": "#/definitions/DiagnosticOverflow"
+          }
+        },
+        "required": ["available", "kind", "measured", "overflow"],
+        "type": "object"
+      },
+      "DiagnosticBoundsKind": {
+        "enum": ["text", "layout", "slide"],
+        "type": "string"
+      },
+      "DiagnosticOverflow": {
+        "properties": {
+          "bottom": {
+            "format": "double",
+            "type": "number"
+          },
+          "left": {
+            "format": "double",
+            "type": "number"
+          },
+          "right": {
+            "format": "double",
+            "type": "number"
+          },
+          "top": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": ["bottom", "left", "right", "top"],
+        "type": "object"
+      },
+      "DiagnosticRecommendation": {
+        "enum": [
+          "resizeNode",
+          "reduceFontSize",
+          "splitContent",
+          "moveNode",
+          "addSlideBreaks"
+        ],
+        "type": "string"
+      },
+      "Frame": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "format": "double",
+            "type": "number"
+          },
+          "rotation": {
+            "default": 0.0,
+            "format": "double",
+            "type": "number"
+          },
+          "width": {
+            "format": "double",
+            "type": "number"
+          },
+          "x": {
+            "format": "double",
+            "type": "number"
+          },
+          "y": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": ["height", "width", "x", "y"],
+        "type": "object"
+      }
+    },
+    "properties": {
+      "bounds": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/DiagnosticBounds"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "nodeId": {
+        "type": ["string", "null"]
+      },
+      "recommendations": {
+        "items": {
+          "$ref": "#/definitions/DiagnosticRecommendation"
+        },
+        "type": "array"
+      },
+      "severity": {
+        "type": "string"
+      },
+      "slideId": {
+        "type": ["string", "null"]
+      }
+    },
+    "required": ["code", "message", "severity"],
+    "title": "Diagnostic",
+    "type": "object"
+  },
   "document": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "additionalProperties": false,

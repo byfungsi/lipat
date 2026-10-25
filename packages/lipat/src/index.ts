@@ -1,5 +1,12 @@
 export { createLipat, createLipatFromModule } from "@lipat-internal/wasm";
-export { createDeck, fromMarkdown } from "@lipat-internal/core";
+export { createDeck, fromMarkdown, importMarkdown } from "@lipat-internal/core";
+export type {
+  MarkdownAuthoringOptions,
+  MarkdownSlideBoundary,
+  MarkdownImportSummary,
+  MarkdownImportOptions,
+  MarkdownImportOutput,
+} from "@lipat-internal/core";
 export {
   parsePptx,
   writePptx,

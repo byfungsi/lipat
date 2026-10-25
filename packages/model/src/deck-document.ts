@@ -216,13 +216,35 @@ export interface SlidePlaybackController {
   /** Cancel animation, restore owned styles and detach listeners; safe to call again. */
   destroy(): void;
 }
-/** Diagnostics point agents to the exact slide and node requiring attention. */
+/** Suggested host/agent remedies; these are hints, never automatically applied operations. */
+export type DiagnosticRecommendation =
+  | "resizeNode"
+  | "reduceFontSize"
+  | "splitContent"
+  | "moveNode"
+  | "addSlideBreaks";
+/** Required versus available rectangles in points, in the same coordinate space. Text measurements follow the compiler's supplied/fallback font metrics. */
+export interface DiagnosticBounds {
+  readonly kind: "text" | "layout" | "slide";
+  readonly measured: ElementFrame;
+  readonly available: ElementFrame;
+  /** Nonnegative excess past each edge, in points. */
+  readonly overflow: {
+    readonly left: number;
+    readonly right: number;
+    readonly top: number;
+    readonly bottom: number;
+  };
+}
+/** Diagnostics point agents to the exact slide/node; layout warnings also carry measurements and possible remedies. */
 export interface DeckDiagnostic {
   readonly code: string;
   readonly severity: "warning" | "error";
   readonly message: string;
   readonly slideId?: string;
   readonly nodeId?: string;
+  readonly bounds?: DiagnosticBounds;
+  readonly recommendations?: readonly DiagnosticRecommendation[];
 }
 /** Approximate default metrics can be replaced by host-measured glyph widths in em units. */
 export interface FontMetrics {
