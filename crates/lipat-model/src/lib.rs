@@ -1,5 +1,7 @@
 //! Portable authoring documents and resolved slide scenes. All distances are points.
+mod resource_limits;
 use base64::{engine::general_purpose::STANDARD, Engine};
+pub use resource_limits::{resource_limit, ResourceLimits};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
@@ -259,13 +261,19 @@ impl ImageSource {
 }
 /// URLs remain opaque source data; validating them never performs a network request.
 pub fn check_image_url(value: &str) -> Result<()> {
-    let parsed = url::Url::parse(value)
-        .map_err(|_| LipatError::new("invalidDocument", "Image URL must be absolute HTTP(S)"))?;
     if value.len() > 8192
         || !(value.to_ascii_lowercase().starts_with("http://")
             || value.to_ascii_lowercase().starts_with("https://"))
         || value.chars().any(|c| c.is_control() || c.is_whitespace())
-        || !matches!(parsed.scheme(), "http" | "https")
+    {
+        return Err(LipatError::new(
+            "invalidDocument",
+            "Image URL must be HTTP(S), without whitespace or credentials",
+        ));
+    }
+    let parsed = url::Url::parse(value)
+        .map_err(|_| LipatError::new("invalidDocument", "Image URL must be absolute HTTP(S)"))?;
+    if !matches!(parsed.scheme(), "http" | "https")
         || parsed.host_str().is_none()
         || !parsed.username().is_empty()
         || parsed.password().is_some()
@@ -502,8 +510,11 @@ pub fn check_frame(f: Frame) -> Result<()> {
     Ok(())
 }
 pub fn check_style(s: &TextStyle) -> Result<()> {
-    if s.font_size
-        .is_some_and(|v| !v.is_finite() || v <= 0. || v > 4000.)
+    if s.font_family
+        .as_ref()
+        .is_some_and(|family| family.len() > 1024)
+        || s.font_size
+            .is_some_and(|v| !v.is_finite() || v <= 0. || v > 4000.)
         || s.color.as_ref().is_some_and(|v| !color_valid(v))
         || s.align
             .as_ref()
@@ -513,8 +524,36 @@ pub fn check_style(s: &TextStyle) -> Result<()> {
     }
     Ok(())
 }
+fn check_asset_budget(assets: &[Asset], limits: &ResourceLimits) -> Result<()> {
+    let mut total = 0usize;
+    for asset in assets {
+        let length = (asset.data.len().saturating_mul(3) / 4).saturating_sub(
+            if asset.data.ends_with("==") {
+                2
+            } else if asset.data.ends_with('=') {
+                1
+            } else {
+                0
+            },
+        );
+        total = total.saturating_add(length);
+        if total > limits.max_asset_bytes {
+            return Err(resource_limit("maxAssetBytes"));
+        }
+    }
+    Ok(())
+}
 /// Validate every serialized document boundary, including rehydration and edits.
 pub fn check_document(doc: &DeckDocument) -> Result<()> {
+    check_document_with_limits(doc, &ResourceLimits::default())
+}
+/// Validate source while consuming the host's document, text, table and asset budgets.
+pub fn check_document_with_limits(doc: &DeckDocument, limits: &ResourceLimits) -> Result<()> {
+    limits.check()?;
+    check_asset_budget(&doc.assets, limits)?;
+    if doc.slides.len() > limits.max_slides {
+        return Err(resource_limit("maxSlides"));
+    }
     if doc.version != 1 || !id_valid(&doc.id) || doc.slides.is_empty() || doc.slides.len() > 10000 {
         return Err(LipatError::new(
             "invalidDocument",
@@ -528,7 +567,8 @@ pub fn check_document(doc: &DeckDocument) -> Result<()> {
         return Err(LipatError::new("invalidDocument", "Invalid slide size"));
     }
     let t = &doc.theme;
-    if !color_valid(&t.background)
+    if t.font_family.len() > 1024
+        || !color_valid(&t.background)
         || !color_valid(&t.foreground)
         || !color_valid(&t.accent)
         || [t.font_size, t.heading_size]
@@ -557,11 +597,8 @@ pub fn check_document(doc: &DeckDocument) -> Result<()> {
             .decode(&a.data)
             .map_err(|_| LipatError::new("invalidDocument", "Invalid base64 image asset"))?;
         asset_bytes += bytes.len();
-        if asset_bytes > 64 * 1024 * 1024 {
-            return Err(LipatError::new(
-                "resourceLimit",
-                "Embedded assets exceed 64 MiB",
-            ));
+        if asset_bytes > limits.max_asset_bytes {
+            return Err(resource_limit("maxAssetBytes"));
         }
         if [a.width, a.height]
             .into_iter()
@@ -577,6 +614,7 @@ pub fn check_document(doc: &DeckDocument) -> Result<()> {
     let mut slide_ids = HashSet::new();
     let mut node_ids = HashSet::new();
     let mut count = 0;
+    let mut table_cells = 0;
     for s in &doc.slides {
         if !id_valid(&s.id)
             || !slide_ids.insert(s.id.clone())
@@ -587,7 +625,15 @@ pub fn check_document(doc: &DeckDocument) -> Result<()> {
                 "Invalid or duplicate slide identity or background",
             ));
         }
-        check_node(&s.content, &assets, &mut node_ids, &mut count, 0)?;
+        check_node(
+            &s.content,
+            &assets,
+            &mut node_ids,
+            &mut count,
+            0,
+            limits,
+            &mut table_cells,
+        )?;
     }
     for (index, s) in doc.slides.iter().enumerate() {
         if let Some(parent) = &s.parent_id {
@@ -610,13 +656,15 @@ fn check_node(
     ids: &mut HashSet<String>,
     count: &mut usize,
     depth: usize,
+    limits: &ResourceLimits,
+    table_cells: &mut usize,
 ) -> Result<()> {
     *count += 1;
-    if depth > 64 || *count > 100000 {
-        return Err(LipatError::new(
-            "resourceLimit",
-            "Document exceeds 64 levels or 100000 nodes",
-        ));
+    if depth > limits.max_depth {
+        return Err(resource_limit("maxDepth"));
+    }
+    if *count > limits.max_nodes {
+        return Err(resource_limit("maxNodes"));
     }
     if !id_valid(&n.id) || !ids.insert(n.id.clone()) {
         return Err(LipatError::new(
@@ -650,17 +698,45 @@ fn check_node(
         }
     }
     let check_text = |text: &TextContent| -> Result<()> {
-        if text.text().len() > 1_000_000 {
-            return Err(LipatError::new(
-                "resourceLimit",
-                "Text exceeds one million bytes",
-            ));
+        let length = match text {
+            TextContent::Plain(text) => text.len(),
+            TextContent::Rich(runs) => runs.iter().map(|r| r.text.len()).sum(),
+        };
+        if length > limits.max_text_bytes {
+            return Err(resource_limit("maxTextBytes"));
         }
-        for r in text.runs() {
-            check_style(&r.style)?;
+        if let TextContent::Rich(runs) = text {
+            for r in runs {
+                check_style(&r.style)?;
+            }
         }
         Ok(())
     };
+    let text_length = match &n.kind {
+        NodeKind::List { items, .. } => {
+            if items.len() > limits.max_text_lines {
+                return Err(resource_limit("maxTextLines"));
+            }
+            items.iter().map(|s| s.len()).sum()
+        }
+        NodeKind::Code { text, .. } => text.len(),
+        NodeKind::Table { columns, rows } => {
+            let cells = columns.len().saturating_mul(rows.len().saturating_add(1));
+            *table_cells = table_cells.saturating_add(cells);
+            if *table_cells > limits.max_table_cells {
+                return Err(resource_limit("maxTableCells"));
+            }
+            columns
+                .iter()
+                .chain(rows.iter().flatten())
+                .map(|s| s.len())
+                .sum()
+        }
+        _ => 0,
+    };
+    if text_length > limits.max_text_bytes {
+        return Err(resource_limit("maxTextBytes"));
+    }
     match &n.kind {
         NodeKind::Heading { text, level } => {
             if !(1..=6).contains(level) {
@@ -739,21 +815,49 @@ fn check_node(
                     "Canvas children require explicit frames",
                 ));
             }
-            check_node(c, assets, ids, count, depth + 1)?;
+            check_node(c, assets, ids, count, depth + 1, limits, table_cells)?;
         }
     }
     Ok(())
 }
 /// Validate a scene before native or WASM export.
 pub fn check_scene(scene: &SlideScene) -> Result<()> {
+    check_scene_with_limits(scene, &ResourceLimits::default())
+}
+/// Check resolved scenes under the same host budgets before export or authoring conversion.
+pub fn check_scene_with_limits(scene: &SlideScene, limits: &ResourceLimits) -> Result<()> {
+    limits.check()?;
+    check_asset_budget(&scene.assets, limits)?;
+    if scene.slides.len() > limits.max_slides {
+        return Err(resource_limit("maxSlides"));
+    }
+    if scene.slides.iter().map(|s| s.elements.len()).sum::<usize>() > limits.max_scene_elements {
+        return Err(resource_limit("maxSceneElements"));
+    }
     if scene.version != 1 || scene.slides.is_empty() {
         return Err(LipatError::new(
             "invalidScene",
             "Expected version 1 with at least one slide",
         ));
     }
+    let mut table_cells = 0usize;
     for slide in &scene.slides {
         for element in &slide.elements {
+            if let SceneKind::Table { columns, rows } = &element.kind {
+                table_cells = table_cells
+                    .saturating_add(columns.len().saturating_mul(rows.len().saturating_add(1)));
+                if table_cells > limits.max_table_cells {
+                    return Err(resource_limit("maxTableCells"));
+                }
+                let text_bytes: usize = columns
+                    .iter()
+                    .chain(rows.iter().flatten())
+                    .map(|text| text.len())
+                    .sum();
+                if text_bytes > limits.max_text_bytes {
+                    return Err(resource_limit("maxTextBytes"));
+                }
+            }
             if let SceneKind::Text {
                 text,
                 runs,
@@ -761,6 +865,14 @@ pub fn check_scene(scene: &SlideScene) -> Result<()> {
                 line_height,
             } = &element.kind
             {
+                if text.len() > limits.max_text_bytes
+                    || runs.iter().map(|run| run.text.len()).sum::<usize>() > limits.max_text_bytes
+                {
+                    return Err(resource_limit("maxTextBytes"));
+                }
+                if lines.len() > limits.max_text_lines {
+                    return Err(resource_limit("maxTextLines"));
+                }
                 let mut cursor = 0;
                 if lines.is_empty() && !text.is_empty() {
                     return Err(LipatError::new(
@@ -782,7 +894,6 @@ pub fn check_scene(scene: &SlideScene) -> Result<()> {
                 }
                 if !line_height.is_finite()
                     || *line_height <= 0.
-                    || lines.len() > 10000
                     || (!runs.is_empty()
                         && runs.iter().map(|r| r.text.as_str()).collect::<String>() != *text)
                 {
@@ -794,7 +905,13 @@ pub fn check_scene(scene: &SlideScene) -> Result<()> {
             }
         }
     }
-    check_document(&scene_to_document(scene))
+    // The conversion's synthetic canvas roots are not source nodes in the admitted flat scene.
+    let source_limits = ResourceLimits {
+        max_nodes: ResourceLimits::default().max_nodes,
+        max_depth: ResourceLimits::default().max_depth,
+        ..*limits
+    };
+    check_document_with_limits(&scene_to_document(scene), &source_limits)
 }
 /// Import scene geometry explicitly as editable canvas content without inferring semantics.
 pub fn scene_to_document(scene: &SlideScene) -> DeckDocument {

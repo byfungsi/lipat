@@ -70,3 +70,11 @@ Entrance effects are serializable leaf-node instructions validated in Rust and c
 ## Image boundary
 
 Image source is a union of embedded asset identity and an HTTP(S) URL, validated in Rust. URL parsing, linked PPTX relationships and scene compilation need no network. A host-supplied `ImageLoader` owns fetch, byte limits and errors in the optional `/images` module. The synchronous engine cannot own browser/Node credentials, redirects, CORS or asynchronous I/O; keeping resolution separate lets native and WASM callers share one deterministic core. Resolution returns a new validated document or scene, preserving source state on failure.
+
+## Host initialization and immutable viewing
+
+The WASM adapter owns ABI validation, request/response memory and typed Results. Byte compilation and precompiled-module construction feed that same implementation; copying the bridge into a Worker was rejected because it duplicates ownership and breaks SDK parity. The precompiled module argument is structurally an object at the public type boundary, matching host `WebAssembly.Module` values without adding DOM declarations to headless consumers. Native instantiation and ABI checks establish the runtime capability.
+
+`ScenePreview` and `ScenePlayer` own immutable scene navigation/rendering without an authoring dependency. Runtime-based viewers compile once per document revision and delegate to them. Keeping scene presentation separate from the runtime wrappers avoids reconstructing authoring documents for stored artifacts. Image-resource policy belongs to the shared SVG renderer, so React, HTML and reveal output enforce the same restriction.
+
+`ResourceLimits` belongs to the native model. It is supplied explicitly to document validation, operations, layout and PPTX parsing; native/WASM requests use the same bounds. The private PPTX package context carries its limits into XML/relationship readers, preventing an inherited or auxiliary XML part from silently bypassing the host budget. There is no thread-local/global limit policy and no duplicate JavaScript layout/parser. See [limits](./limits.md).

@@ -1,0 +1,109 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #f6f6f9;
+  color: #172033;
+  font:
+    16px Arial,
+    sans-serif;
+}
+main {
+  max-width: 1120px;
+  padding: 36px 24px;
+  margin: auto;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+header a {
+  color: #6256db;
+  font-size: 30px;
+  font-weight: 700;
+  text-decoration: none;
+}
+header span,
+footer span {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #777b8b;
+}
+h1 {
+  font-size: 36px;
+  letter-spacing: -1px;
+  margin: 36px 0 12px;
+}
+p {
+  max-width: 760px;
+  line-height: 1.6;
+  color: #777b8b;
+}
+button {
+  font: inherit;
+  border: 1px solid #dddde8;
+  border-radius: 7px;
+  padding: 9px 16px;
+  background: white;
+  color: inherit;
+  cursor: pointer;
+}
+button[aria-pressed="true"] {
+  background: #6256db;
+  color: white;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 24px 0 18px;
+}
+.lipat-player nav,
+.lipat-preview nav {
+  justify-content: center;
+  font-size: 13px;
+}
+.lipat-preview header {
+  font-size: 13px;
+  color: #777b8b;
+  margin-bottom: 18px;
+}
+section {
+  background: white;
+  border: 1px solid #e6e6ef;
+  border-radius: 12px;
+  padding: 20px;
+}
+details {
+  font-size: 13px;
+  color: #777b8b;
+  margin-top: 15px;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  font-size: 12px;
+  color: #5b6172;
+}
+@media (max-width: 600px) {
+  h1 {
+    font-size: 28px;
+  }
+  main {
+    padding: 24px 16px;
+  }
+  section {
+    padding: 12px;
+  }
+  footer {
+    flex-wrap: wrap;
+  }
+}

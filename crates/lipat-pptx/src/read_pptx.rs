@@ -84,9 +84,26 @@ fn merge_style(a: &TextStyle, b: &TextStyle) -> TextStyle {
 fn shape_text(
     n: XmlNode<'_, '_>,
     colors: &BTreeMap<String, String>,
-) -> (String, Vec<TextRun>, TextStyle) {
+    limits: &ResourceLimits,
+) -> Result<(String, Vec<TextRun>, TextStyle)> {
+    let text_bytes: usize = n
+        .descendants()
+        .filter(|n| n.has_tag_name("t"))
+        .filter_map(|n| n.text())
+        .map(str::len)
+        .sum();
+    if text_bytes > limits.max_text_bytes {
+        return Err(resource_limit("maxTextBytes"));
+    }
+    let hard_lines = n
+        .descendants()
+        .filter(|n| n.has_tag_name("p") || n.has_tag_name("br"))
+        .count();
+    if hard_lines > limits.max_text_lines {
+        return Err(resource_limit("maxTextLines"));
+    }
     let Some(body) = child(n, "txBody") else {
-        return (String::new(), vec![], TextStyle::default());
+        return Ok((String::new(), vec![], TextStyle::default()));
     };
     let mut runs = vec![];
     let mut base = TextStyle {
@@ -146,8 +163,11 @@ fn shape_text(
             }
         }
     }
+    if runs.iter().map(|r| r.text.len()).sum::<usize>() > limits.max_text_bytes {
+        return Err(resource_limit("maxTextBytes"));
+    }
     let text = runs.iter().map(|r| r.text.as_str()).collect();
-    (text, runs, base)
+    Ok((text, runs, base))
 }
 struct ShapeReadContext<'a> {
     depth: usize,
@@ -163,8 +183,20 @@ struct Reader {
     asset_paths: BTreeMap<String, String>,
     diagnostics: Vec<Diagnostic>,
     colors: BTreeMap<String, String>,
+    limits: ResourceLimits,
+    element_count: usize,
+    asset_bytes: usize,
+    table_cells: usize,
 }
 impl Reader {
+    fn push_element(&mut self, out: &mut Vec<SceneElement>, element: SceneElement) -> Result<()> {
+        self.element_count += 1;
+        if self.element_count > self.limits.max_scene_elements {
+            return Err(resource_limit("maxSceneElements"));
+        }
+        out.push(element);
+        Ok(())
+    }
     fn warn(&mut self, code: &str, message: impl Into<String>, slide: &str, node: Option<String>) {
         self.diagnostics
             .push(Diagnostic::warning(code, message, Some(slide.into()), node));
@@ -189,6 +221,10 @@ impl Reader {
         let bytes = self.parts.get(path).ok_or_else(|| {
             LipatError::new("invalidPptx", format!("Missing embedded image: {path}"))
         })?;
+        self.asset_bytes = self.asset_bytes.saturating_add(bytes.len());
+        if self.asset_bytes > self.limits.max_asset_bytes {
+            return Err(resource_limit("maxAssetBytes"));
+        }
         let id = format!("asset-{}", self.assets.len() + 1);
         self.assets.push(Asset {
             id: id.clone(),
@@ -214,11 +250,8 @@ impl Reader {
             inherited,
             transform,
         } = context;
-        if depth > 64 {
-            return Err(LipatError::new(
-                "resourceLimit",
-                "PPTX groups exceed 64 nested levels",
-            ));
+        if depth > self.limits.max_depth {
+            return Err(resource_limit("maxDepth"));
         }
         for (index, n) in root.children().filter(|n| n.is_element()).enumerate() {
             let tag = n.tag_name().name();
@@ -287,34 +320,40 @@ impl Reader {
                         }
                     };
                     if fill.is_some() || stroke.is_some() || tag == "cxnSp" {
-                        out.push(SceneElement {
-                            id: format!("{id}-shape"),
-                            frame: f,
-                            style: TextStyle::default(),
-                            step: None,
-                            animation: None,
-                            kind: SceneKind::Shape {
-                                geometry: geometry.into(),
-                                fill,
-                                stroke,
+                        self.push_element(
+                            out,
+                            SceneElement {
+                                id: format!("{id}-shape"),
+                                frame: f,
+                                style: TextStyle::default(),
+                                step: None,
+                                animation: None,
+                                kind: SceneKind::Shape {
+                                    geometry: geometry.into(),
+                                    fill,
+                                    stroke,
+                                },
                             },
-                        });
+                        )?;
                     }
-                    let (text, runs, style) = shape_text(n, &self.colors);
+                    let (text, runs, style) = shape_text(n, &self.colors, &self.limits)?;
                     if !text.is_empty() {
-                        out.push(SceneElement {
-                            id: id.clone(),
-                            frame: f,
-                            style: style.clone(),
-                            step: None,
-                            animation: None,
-                            kind: SceneKind::Text {
-                                line_height: style.font_size.unwrap_or(24.) * 1.2,
-                                lines: text.split('\n').map(String::from).collect(),
-                                text,
-                                runs,
+                        self.push_element(
+                            out,
+                            SceneElement {
+                                id: id.clone(),
+                                frame: f,
+                                style: style.clone(),
+                                step: None,
+                                animation: None,
+                                kind: SceneKind::Text {
+                                    line_height: style.font_size.unwrap_or(24.) * 1.2,
+                                    lines: text.split('\n').map(String::from).collect(),
+                                    text,
+                                    runs,
+                                },
                             },
-                        });
+                        )?;
                     }
                     if descendant(n, "custGeom").is_some() {
                         self.warn(
@@ -358,25 +397,28 @@ impl Reader {
                         None
                     };
                     if let Some(source) = source {
-                        out.push(SceneElement {
-                            id: id.clone(),
-                            frame: f,
-                            style: TextStyle::default(),
-                            step: None,
-                            animation: None,
-                            kind: SceneKind::Image {
-                                source,
-                                alt: descendant(n, "cNvPr")
-                                    .and_then(|n| n.attribute("descr"))
-                                    .unwrap_or("")
-                                    .into(),
-                                fit: if symmetric {
-                                    "cover".into()
-                                } else {
-                                    "stretch".into()
+                        self.push_element(
+                            out,
+                            SceneElement {
+                                id: id.clone(),
+                                frame: f,
+                                style: TextStyle::default(),
+                                step: None,
+                                animation: None,
+                                kind: SceneKind::Image {
+                                    source,
+                                    alt: descendant(n, "cNvPr")
+                                        .and_then(|n| n.attribute("descr"))
+                                        .unwrap_or("")
+                                        .into(),
+                                    fit: if symmetric {
+                                        "cover".into()
+                                    } else {
+                                        "stretch".into()
+                                    },
                                 },
                             },
-                        });
+                        )?;
                     } else {
                         self.warn(
                             "unsupportedImage",
@@ -397,9 +439,15 @@ impl Reader {
                 "graphicFrame" => {
                     if let Some(table) = descendant(n, "tbl") {
                         let mut table_rows = vec![];
+                        let start_cells = self.table_cells;
+                        let mut table_text_bytes = 0usize;
                         for row in table.children().filter(|n| n.has_tag_name("tr")) {
                             let mut cells = vec![];
                             for cell in row.children().filter(|n| n.has_tag_name("tc")) {
+                                self.table_cells += 1;
+                                if self.table_cells > self.limits.max_table_cells {
+                                    return Err(resource_limit("maxTableCells"));
+                                }
                                 if cell.attribute("gridSpan").is_some()
                                     || cell.attribute("rowSpan").is_some()
                                     || cell.attribute("hMerge") == Some("1")
@@ -412,33 +460,47 @@ impl Reader {
                                         Some(id.clone()),
                                     );
                                 }
-                                cells.push(shape_text(cell, &self.colors).0);
+                                let text = shape_text(cell, &self.colors, &self.limits)?.0;
+                                table_text_bytes = table_text_bytes.saturating_add(text.len());
+                                if table_text_bytes > self.limits.max_text_bytes {
+                                    return Err(resource_limit("maxTextBytes"));
+                                }
+                                cells.push(text);
                             }
                             table_rows.push(cells);
                         }
                         let columns = table_rows.first().cloned().unwrap_or_default();
                         if !columns.is_empty() {
                             let width = columns.len();
+                            self.table_cells = self.table_cells.max(
+                                start_cells.saturating_add(width.saturating_mul(table_rows.len())),
+                            );
+                            if self.table_cells > self.limits.max_table_cells {
+                                return Err(resource_limit("maxTableCells"));
+                            }
                             for row in &mut table_rows {
                                 row.resize(width, String::new());
                                 row.truncate(width);
                             }
-                            out.push(SceneElement {
-                                id,
-                                frame: f,
-                                style: TextStyle {
-                                    font_family: Some("Arial".into()),
-                                    font_size: Some(18.),
-                                    color: Some("#172033".into()),
-                                    ..TextStyle::default()
+                            self.push_element(
+                                out,
+                                SceneElement {
+                                    id,
+                                    frame: f,
+                                    style: TextStyle {
+                                        font_family: Some("Arial".into()),
+                                        font_size: Some(18.),
+                                        color: Some("#172033".into()),
+                                        ..TextStyle::default()
+                                    },
+                                    step: None,
+                                    animation: None,
+                                    kind: SceneKind::Table {
+                                        columns,
+                                        rows: table_rows.into_iter().skip(1).collect(),
+                                    },
                                 },
-                                step: None,
-                                animation: None,
-                                kind: SceneKind::Table {
-                                    columns,
-                                    rows: table_rows.into_iter().skip(1).collect(),
-                                },
-                            });
+                            )?;
                         }
                     } else {
                         self.warn(
@@ -508,11 +570,18 @@ impl Reader {
 }
 /// Read an unencrypted PPTX from bytes without filesystem, network or authoring dependencies.
 pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
-    let parts = read_package(bytes)?;
+    parse_pptx_with_limits(bytes, &ResourceLimits::default())
+}
+/// Parse with host budgets checked before ZIP expansion, XML allocation and primitive materialization.
+pub fn parse_pptx_with_limits(
+    bytes: &[u8],
+    limits: &ResourceLimits,
+) -> Result<ImportedPresentation> {
+    let parts = read_package_with_limits(bytes, limits)?;
     if !parts.contains_key("[Content_Types].xml") {
         return Err(LipatError::new("invalidPptx", "Missing OPC content types"));
     }
-    parse_xml(xml_text(&parts, "[Content_Types].xml")?)?;
+    parse_xml(xml_text(&parts, "[Content_Types].xml")?, limits)?;
     let root_rels = relationships(&parts, "")?;
     let presentation = root_rels
         .values()
@@ -520,7 +589,7 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
         .ok_or_else(|| LipatError::new("invalidPptx", "Missing presentation relationship"))?
         .target
         .clone();
-    let pdoc = parse_xml(xml_text(&parts, &presentation)?)?;
+    let pdoc = parse_xml(xml_text(&parts, &presentation)?, limits)?;
     if pdoc.root_element().tag_name().name() != "presentation" {
         return Err(LipatError::new(
             "invalidPptx",
@@ -541,7 +610,10 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
-    if slide_refs.is_empty() || slide_refs.len() > 10000 {
+    if slide_refs.len() > limits.max_slides {
+        return Err(resource_limit("maxSlides"));
+    }
+    if slide_refs.is_empty() {
         return Err(LipatError::new(
             "invalidPptx",
             "Expected 1–10000 referenced slides",
@@ -550,7 +622,7 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
     drop(pdoc);
     let rels = relationships(&parts, &presentation)?;
     let title = if parts.contains_key("docProps/core.xml") {
-        let core = parse_xml(xml_text(&parts, "docProps/core.xml")?)?;
+        let core = parse_xml(xml_text(&parts, "docProps/core.xml")?, limits)?;
         descendant(core.root_element(), "title")
             .and_then(|n| n.text())
             .unwrap_or("")
@@ -567,7 +639,7 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
         .iter()
         .find(|(p, _)| p.contains("/theme/") && p.ends_with(".xml"))
     {
-        let doc = parse_xml(xml_text(&parts, path)?)?;
+        let doc = parse_xml(xml_text(&parts, path)?, limits)?;
         if let Some(scheme) = descendant(doc.root_element(), "clrScheme") {
             for n in scheme.children().filter(|n| n.is_element()) {
                 let value = descendant(n, "srgbClr")
@@ -586,6 +658,10 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
         colors.insert("tx1".into(), c);
     }
     let mut reader = Reader {
+        limits: *limits,
+        element_count: 0,
+        asset_bytes: 0,
+        table_cells: 0,
         parts,
         assets: vec![],
         asset_paths: BTreeMap::new(),
@@ -602,7 +678,7 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
             })?;
         let path = &relationship.target;
         let text = xml_text(&reader.parts, path)?.to_string();
-        let doc = parse_xml(&text)?;
+        let doc = parse_xml(&text, limits)?;
         if doc.root_element().tag_name().name() != "sld" {
             return Err(LipatError::new("invalidPptx", "Invalid slide XML root"));
         }
@@ -629,7 +705,7 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
         }
         for (level, part) in inherited_parts.iter().enumerate() {
             let xml = xml_text(&reader.parts, part)?.to_string();
-            let inherited_doc = parse_xml(&xml)?;
+            let inherited_doc = parse_xml(&xml, limits)?;
             if let Some(bg) = descendant(inherited_doc.root_element(), "bg") {
                 inherited_background = color(bg, &reader.colors).or(inherited_background);
             }
@@ -719,15 +795,15 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
             .values()
             .find(|r| r.kind.ends_with("/notesSlide") && !r.external)
         {
-            let notes_doc = parse_xml(xml_text(&reader.parts, &r.target)?)?;
+            let notes_doc = parse_xml(xml_text(&reader.parts, &r.target)?, limits)?;
             notes_doc
                 .descendants()
                 .filter(|n| {
                     n.has_tag_name("sp")
                         && descendant(*n, "ph").and_then(|n| n.attribute("type")) == Some("body")
                 })
-                .map(|n| shape_text(n, &reader.colors).0)
-                .collect::<Vec<_>>()
+                .map(|n| shape_text(n, &reader.colors, limits).map(|text| text.0))
+                .collect::<Result<Vec<_>>>()?
                 .join("\n")
         } else {
             String::new()
@@ -757,7 +833,7 @@ pub fn parse_pptx(bytes: &[u8]) -> Result<ImportedPresentation> {
         assets: reader.assets,
         slides,
     };
-    check_scene(&scene)?;
+    check_scene_with_limits(&scene, limits)?;
     Ok(ImportedPresentation {
         scene,
         diagnostics: reader.diagnostics,

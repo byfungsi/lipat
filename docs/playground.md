@@ -14,6 +14,8 @@ PPTX downloads retain the supported native animations. Choose **Image sample**, 
 
 [Open the animation sample directly](./playground/index.html?sample=animations) · [Animation API and output support](./animations.md)
 
+[Open the immutable scene-only viewer](./playground/scene.html) to preview or play a resolved scene without loading an editing engine or WASM.
+
 <iframe :src="withBase('/playground/index.html')" title="Lipat slide authoring playground" style="width:100%;height:820px;border:1px solid var(--vp-c-divider);border-radius:10px" />
 
 [Open the playground in its own window](./playground/index.html).

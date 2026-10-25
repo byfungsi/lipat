@@ -1,4 +1,5 @@
 import type { SlideScene } from "@lipat-internal/model";
+import type { ImageRenderPolicy } from "@lipat-internal/render";
 import { escapeSlideMarkup, renderSlideSvg } from "@lipat-internal/render";
 /** Inject reveal.js rather than importing a browser player into headless entrypoints. */
 export interface RevealInstance {
@@ -7,12 +8,15 @@ export interface RevealInstance {
   destroy(): void;
 }
 /** Render horizontal slides and optional vertical stacks into reveal.js-compatible sections. */
-export function renderRevealMarkup(scene: SlideScene): string {
+export function renderRevealMarkup(
+  scene: SlideScene,
+  options: { readonly imagePolicy?: ImageRenderPolicy } = {},
+): string {
   const slides = scene.slides.filter((s) => !s.hidden);
   const render = (id: string) => {
     const slide = slides.find((s) => s.id === id);
     if (!slide) return "";
-    const svg = renderSlideSvg(scene, id).replace(
+    const svg = renderSlideSvg(scene, id, options).replace(
       /data-step="(\d+)"/g,
       (_, step: string) =>
         Number(step) > 0
@@ -38,7 +42,8 @@ export function updateRevealPresentation(
   root: { innerHTML: string },
   reveal: RevealInstance,
   scene: SlideScene,
+  options: { readonly imagePolicy?: ImageRenderPolicy } = {},
 ): void {
-  root.innerHTML = renderRevealMarkup(scene);
+  root.innerHTML = renderRevealMarkup(scene, options);
   reveal.sync();
 }

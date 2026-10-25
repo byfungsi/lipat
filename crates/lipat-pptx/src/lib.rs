@@ -3,5 +3,5 @@ mod animation_timing;
 mod package;
 mod read_pptx;
 mod write_pptx;
-pub use read_pptx::{parse_pptx, ImportedPresentation, SourceMetadata};
-pub use write_pptx::{write_pptx, ExportedPresentation};
+pub use read_pptx::{parse_pptx, parse_pptx_with_limits, ImportedPresentation, SourceMetadata};
+pub use write_pptx::{write_pptx, write_pptx_with_limits, ExportedPresentation};

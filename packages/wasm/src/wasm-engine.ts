@@ -9,6 +9,8 @@ import type {
   ImportedPresentation,
   LipatEngine,
   LipatResult,
+  LipatOptions,
+  ResourceLimits,
   PptxExport,
 } from "@lipat-internal/model";
 interface WasmExports {
@@ -18,10 +20,35 @@ interface WasmExports {
   lipat_execute: (ptr: number, len: number) => bigint;
 }
 /** Instantiate the bundled Rust engine from host-supplied bytes; performs no implicit fetching. */
-export function createLipat(wasmBytes: Uint8Array): LipatResult<LipatEngine> {
+export function createLipat(
+  wasmBytes: Uint8Array,
+  options: LipatOptions = {},
+): LipatResult<LipatEngine> {
+  try {
+    return createLipatFromModule(
+      new WebAssembly.Module(new Uint8Array(wasmBytes)),
+      options,
+    );
+  } catch (error) {
+    return initializationFailure(error);
+  }
+}
+function initializationFailure(error: unknown): LipatResult<never> {
+  return {
+    ok: false,
+    error: {
+      reason: "wasmUnavailable",
+      message: `Lipat WebAssembly initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+    },
+  };
+}
+/** Instantiate a host-precompiled Lipat WebAssembly.Module; its object/ABI is checked at runtime without DOM ambient types. Never compiles bytes or fetches. */
+export function createLipatFromModule(
+  module: object,
+  options: LipatOptions = {},
+): LipatResult<LipatEngine> {
   let exports: WasmExports;
   try {
-    const module = new WebAssembly.Module(new Uint8Array(wasmBytes));
     const instance = new WebAssembly.Instance(module, {});
     const e = instance.exports;
     if (
@@ -40,20 +67,22 @@ export function createLipat(wasmBytes: Uint8Array): LipatResult<LipatEngine> {
     // SAFETY: Required exports were checked above; the bundled Rust module defines this ABI.
     exports = e as unknown as WasmExports;
   } catch (error) {
-    return {
-      ok: false,
-      error: {
-        reason: "wasmUnavailable",
-        message: `Lipat WebAssembly initialization failed: ${error instanceof Error ? error.message : String(error)}`,
-      },
-    };
+    return initializationFailure(error);
   }
   const encoder = new TextEncoder(),
     decoder = new TextDecoder();
+  let limits: ResourceLimits | undefined = options.limits;
+  let maxRequestBytes = 96 * 1024 * 1024;
+  let maxPptxBytes = 32 * 1024 * 1024;
   function request<T>(value: object): LipatResult<T> {
     let input: Uint8Array;
     try {
-      input = encoder.encode(JSON.stringify(value));
+      input = encoder.encode(
+        JSON.stringify({
+          ...value,
+          ...(limits !== undefined ? { limits } : {}),
+        }),
+      );
     } catch {
       return {
         ok: false,
@@ -63,12 +92,12 @@ export function createLipat(wasmBytes: Uint8Array): LipatResult<LipatEngine> {
         },
       };
     }
-    if (input.byteLength > 96 * 1024 * 1024)
+    if (input.byteLength > maxRequestBytes)
       return {
         ok: false,
         error: {
           reason: "resourceLimit",
-          message: "Lipat request exceeds 96 MiB",
+          message: "Lipat resource limit exceeded: maxRequestBytes",
         },
       };
     let pointer: number | undefined;
@@ -104,6 +133,13 @@ export function createLipat(wasmBytes: Uint8Array): LipatResult<LipatEngine> {
         exports.lipat_free(outputPointer, outputLength);
     }
   }
+  if (limits !== undefined) {
+    const parsed = request<ResourceLimits>({ operation: "resourceLimits" });
+    if (!parsed.ok) return parsed;
+    limits = parsed.value;
+    maxRequestBytes = limits.maxRequestBytes ?? maxRequestBytes;
+    maxPptxBytes = limits.maxPptxBytes ?? maxPptxBytes;
+  }
   return {
     ok: true,
     value: {
@@ -114,12 +150,12 @@ export function createLipat(wasmBytes: Uint8Array): LipatResult<LipatEngine> {
       applyDocument: (document, operations) =>
         request<DeckDocument>({ operation: "apply", document, operations }),
       parsePptx(bytes) {
-        if (bytes.byteLength > 32 * 1024 * 1024)
+        if (bytes.byteLength > maxPptxBytes)
           return {
             ok: false,
             error: {
               reason: "resourceLimit",
-              message: "PPTX input exceeds 32 MiB",
+              message: "Lipat resource limit exceeded: maxPptxBytes",
             },
           };
         return request<ImportedPresentation>({

@@ -28,8 +28,9 @@ try {
   writeFileSync(
     join(folder, "consumer.mjs"),
     `import {readFileSync} from 'node:fs';import {fileURLToPath} from 'node:url';
-import {createLipat,createDeck} from '@byfungsi/lipat';
-const engine=createLipat(new Uint8Array(readFileSync(fileURLToPath(import.meta.resolve('@byfungsi/lipat/lipat.wasm')))));
+import {createLipat,createLipatFromModule,createDeck} from '@byfungsi/lipat';
+const bytes=new Uint8Array(readFileSync(fileURLToPath(import.meta.resolve('@byfungsi/lipat/lipat.wasm'))));
+const engine=createLipat(bytes); const precompiled=createLipatFromModule(new WebAssembly.Module(bytes),{limits:{maxNodes:20}}); if(!precompiled.ok)throw new Error(precompiled.error.message);
 if(!engine.ok)throw new Error(engine.error.message);
 const deck=createDeck({id:'consumer',slides:[{id:'s',content:{id:'title',type:'heading',text:'Packed consumer'}}]},{engine:engine.value});
 if(!deck.ok||!deck.value.compile().ok)throw new Error('Packed runtime failed');export const runtime=deck.value;
@@ -72,6 +73,30 @@ if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new E
     ],
     { stdio: "inherit" },
   );
+  writeFileSync(
+    join(folder, "worker-consumer.ts"),
+    `import {createLipatFromModule} from '@byfungsi/lipat'; declare const module:WebAssembly.Module; const engine=createLipatFromModule(module,{limits:{maxNodes:1000,maxExpandedBytes:4000000}}); if(engine.ok)engine.value.parsePptx(new Uint8Array());`,
+  );
+  const config = JSON.parse(
+    readFileSync(join(folder, "tsconfig.json"), "utf8"),
+  );
+  writeFileSync(
+    join(folder, "tsconfig.worker.json"),
+    JSON.stringify({
+      ...config,
+      include: ["worker-consumer.ts"],
+      files: [resolve("node_modules/@cloudflare/workers-types/index.d.ts")],
+    }),
+  );
+  execFileSync(
+    process.execPath,
+    [
+      resolve("node_modules/typescript/bin/tsc"),
+      "-p",
+      join(folder, "tsconfig.worker.json"),
+    ],
+    { stdio: "inherit" },
+  );
   const { build } = await import("esbuild");
   const result = await build({
     stdin: {
@@ -104,6 +129,28 @@ if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new E
     ],
     { cwd: folder, stdio: "pipe" },
   );
+  writeFileSync(
+    join(folder, "scene-only.mjs"),
+    `import React from 'react'; import {renderToString} from 'react-dom/server'; import {ScenePreview,ScenePlayer} from '@byfungsi/lipat/react'; const scene={version:1,title:'Immutable',size:{width:960,height:540},assets:[],slides:[{id:'s',title:'Scene',notes:'',hidden:false,background:'#FFFFFF',elements:[]}]};for(const View of [ScenePreview,ScenePlayer])if(!renderToString(React.createElement(View,{scene})).includes('<svg'))throw new Error('Scene-only SSR failed');`,
+  );
+  execFileSync("node", ["scene-only.mjs"], { cwd: folder, stdio: "inherit" });
+  const sceneBundle = await build({
+    stdin: {
+      contents:
+        "import {ScenePreview} from '@byfungsi/lipat/react'; console.log(ScenePreview);",
+      resolveDir: folder,
+    },
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    write: false,
+  });
+  if (
+    sceneBundle.outputFiles.some((file) =>
+      /lipat_execute|new WebAssembly.Module/.test(file.text),
+    )
+  )
+    throw new Error("Scene-only consumer pulled the WASM bridge");
   writeFileSync(
     join(folder, "ssr.mjs"),
     `import React from 'react';import {renderToString} from 'react-dom/server';import {DeckPreview,DeckPlayer} from '@byfungsi/lipat/react';import {createMotionPlayback} from '@byfungsi/lipat/motion';import {runtime} from './consumer.mjs';if(!renderToString(React.createElement(DeckPreview,{deck:runtime})).includes('<svg'))throw new Error('Packed React SSR failed');if(!renderToString(React.createElement(DeckPlayer,{deck:runtime,playback:createMotionPlayback()})).includes('<svg'))throw new Error('Packed Motion SSR failed');console.log('Packed package: headless imports, declarations, optional React/Motion, bundling and SSR entry verified.');`,

@@ -20,41 +20,93 @@ pub fn execute(request: Value) -> Result<Value> {
         .get("operation")
         .and_then(Value::as_str)
         .ok_or_else(|| LipatError::new("invalidInput", "Missing operation"))?;
+    let limits: ResourceLimits =
+        serde_json::from_value(request.get("limits").cloned().unwrap_or_else(|| json!({})))
+            .map_err(|_| {
+                LipatError::new(
+                    "invalidLimits",
+                    "Resource limits must be known nonnegative integer fields",
+                )
+            })?;
+    limits.check()?;
+    struct RequestBudget {
+        remaining: usize,
+    }
+    impl std::io::Write for RequestBudget {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if bytes.len() > self.remaining {
+                return Err(std::io::Error::other("request budget exceeded"));
+            }
+            self.remaining -= bytes.len();
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    serde_json::to_writer(
+        RequestBudget {
+            remaining: limits.max_request_bytes,
+        },
+        &request,
+    )
+    .map_err(|_| resource_limit("maxRequestBytes"))?;
     match op {
+        "resourceLimits" => encode(limits),
         "parseDocument" => {
             let doc: DeckDocument = decode(request["document"].clone())?;
-            check_document(&doc)?;
+            check_document_with_limits(&doc, &limits)?;
             encode(doc)
         }
         "apply" => {
             let doc = decode(request["document"].clone())?;
             let operations: Vec<lipat_author::Operation> = decode(request["operations"].clone())?;
-            encode(lipat_author::apply_operations(&doc, &operations)?)
+            encode(lipat_author::apply_operations_with_limits(
+                &doc,
+                &operations,
+                &limits,
+            )?)
         }
         "compile" => {
             let doc = decode(request["document"].clone())?;
             let options = decode(request.get("options").cloned().unwrap_or_else(|| json!({})))?;
-            encode(lipat_layout::compile_document(&doc, &options)?)
+            encode(lipat_layout::compile_document_with_limits(
+                &doc, &options, &limits,
+            )?)
         }
         "parsePptx" => {
+            let encoded = request["bytes"]
+                .as_str()
+                .ok_or_else(|| LipatError::new("invalidInput", "Expected base64 PPTX bytes"))?;
+            let byte_length =
+                (encoded.len().saturating_mul(3) / 4).saturating_sub(if encoded.ends_with("==") {
+                    2
+                } else if encoded.ends_with('=') {
+                    1
+                } else {
+                    0
+                });
+            if byte_length > limits.max_pptx_bytes {
+                return Err(resource_limit("maxPptxBytes"));
+            }
             let bytes =
                 STANDARD
                     .decode(request["bytes"].as_str().ok_or_else(|| {
                         LipatError::new("invalidInput", "Expected base64 PPTX bytes")
                     })?)
                     .map_err(|_| LipatError::new("invalidInput", "Invalid base64 PPTX bytes"))?;
-            encode(lipat_pptx::parse_pptx(&bytes)?)
+            encode(lipat_pptx::parse_pptx_with_limits(&bytes, &limits)?)
         }
         "writePptx" => {
             let scene = decode(request["scene"].clone())?;
-            let output = lipat_pptx::write_pptx(&scene)?;
+            let output = lipat_pptx::write_pptx_with_limits(&scene, &limits)?;
             Ok(json!({"bytes":STANDARD.encode(output.bytes),"diagnostics":output.diagnostics}))
         }
         "importPptx" => {
             let scene = decode(request["scene"].clone())?;
-            check_scene(&scene)?;
+            check_scene_with_limits(&scene, &limits)?;
             let doc = scene_to_document(&scene);
-            check_document(&doc)?;
+            check_document_with_limits(&doc, &limits)?;
             encode(doc)
         }
         _ => Err(LipatError::new(

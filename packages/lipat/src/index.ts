@@ -1,6 +1,10 @@
-export { createLipat } from "@lipat-internal/wasm";
+export { createLipat, createLipatFromModule } from "@lipat-internal/wasm";
 export { createDeck, fromMarkdown } from "@lipat-internal/core";
-export { parsePptx, writePptx, writePptxWithImages } from "@lipat-internal/pptx";
+export {
+  parsePptx,
+  writePptx,
+  writePptxWithImages,
+} from "@lipat-internal/pptx";
 export type * from "@lipat-internal/model";
 export {
   deckThemes,

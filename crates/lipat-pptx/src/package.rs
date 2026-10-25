@@ -1,27 +1,50 @@
-use lipat_model::{LipatError, Result};
+use lipat_model::{resource_limit, LipatError, ResourceLimits, Result};
 use std::{
     collections::BTreeMap,
     io::{Cursor, Read, Write},
 };
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipArchive, ZipWriter};
-pub(crate) type Parts = BTreeMap<String, Vec<u8>>;
+#[derive(Clone, Default)]
+pub(crate) struct Parts {
+    data: BTreeMap<String, Vec<u8>>,
+    pub limits: ResourceLimits,
+}
+impl Parts {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+impl std::ops::Deref for Parts {
+    type Target = BTreeMap<String, Vec<u8>>;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+impl std::ops::DerefMut for Parts {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
+#[cfg(test)]
 pub(crate) fn read_package(bytes: &[u8]) -> Result<Parts> {
-    if bytes.len() > 32 * 1024 * 1024 {
-        return Err(LipatError::new(
-            "resourceLimit",
-            "PPTX input exceeds 32 MiB",
-        ));
+    read_package_with_limits(bytes, &ResourceLimits::default())
+}
+pub(crate) fn read_package_with_limits(bytes: &[u8], limits: &ResourceLimits) -> Result<Parts> {
+    limits.check()?;
+    if bytes.len() > limits.max_pptx_bytes {
+        return Err(resource_limit("maxPptxBytes"));
     }
     let mut zip = ZipArchive::new(Cursor::new(bytes))
         .map_err(|_| LipatError::new("invalidPptx", "PPTX must be an unencrypted ZIP archive"))?;
-    if zip.len() > 10000 {
-        return Err(LipatError::new(
-            "resourceLimit",
-            "PPTX contains more than 10000 entries",
-        ));
+    if zip.len() > limits.max_entries {
+        return Err(resource_limit("maxEntries"));
     }
-    let mut parts = Parts::new();
+    let mut parts = Parts {
+        data: BTreeMap::new(),
+        limits: *limits,
+    };
     let mut total = 0u64;
+    let mut expanded = 0usize;
     for i in 0..zip.len() {
         let mut file = zip
             .by_index(i)
@@ -43,22 +66,31 @@ pub(crate) fn read_package(bytes: &[u8]) -> Result<Parts> {
         total = total
             .checked_add(file.size())
             .ok_or_else(|| LipatError::new("resourceLimit", "ZIP size overflow"))?;
-        if total > 64 * 1024 * 1024 || file.size() > 32 * 1024 * 1024 {
-            return Err(LipatError::new(
-                "resourceLimit",
-                "PPTX expanded parts exceed resource limits",
-            ));
+        if total > limits.max_expanded_bytes as u64 {
+            return Err(resource_limit("maxExpandedBytes"));
+        }
+        if file.size() > limits.max_entry_bytes as u64 {
+            return Err(resource_limit("maxEntryBytes"));
+        }
+        let entry_limit = if path.ends_with(".xml") || path.ends_with(".rels") {
+            limits.max_entry_bytes.min(limits.max_xml_bytes)
+        } else {
+            limits.max_entry_bytes
+        };
+        if file.size() > entry_limit as u64 {
+            return Err(resource_limit("maxEntryBytes/maxXmlBytes"));
         }
         let mut content = vec![];
         file.by_ref()
-            .take(32 * 1024 * 1024 + 1)
+            .take(entry_limit.min(limits.max_expanded_bytes.saturating_sub(expanded)) as u64 + 1)
             .read_to_end(&mut content)
             .map_err(|_| LipatError::new("invalidPptx", "Corrupt or unsupported ZIP entry"))?;
-        if content.len() > 32 * 1024 * 1024 {
-            return Err(LipatError::new(
-                "resourceLimit",
-                "Expanded ZIP entry exceeds 32 MiB",
-            ));
+        if content.len() > entry_limit {
+            return Err(resource_limit("maxEntryBytes/maxXmlBytes"));
+        }
+        expanded = expanded.saturating_add(content.len());
+        if expanded > limits.max_expanded_bytes {
+            return Err(resource_limit("maxExpandedBytes"));
         }
         parts.insert(path, content);
     }
@@ -66,7 +98,7 @@ pub(crate) fn read_package(bytes: &[u8]) -> Result<Parts> {
 }
 pub(crate) fn write_package(parts: Parts) -> Result<Vec<u8>> {
     let mut zip = ZipWriter::new(Cursor::new(Vec::new()));
-    for (path, bytes) in parts {
+    for (path, bytes) in parts.data {
         zip.start_file(
             path,
             SimpleFileOptions::default().compression_method(CompressionMethod::Deflated),
@@ -83,21 +115,33 @@ pub(crate) fn xml_text<'a>(parts: &'a Parts, path: &str) -> Result<&'a str> {
     let bytes = parts
         .get(path)
         .ok_or_else(|| LipatError::new("invalidPptx", format!("Missing package part: {path}")))?;
-    if bytes.len() > 8 * 1024 * 1024 {
-        return Err(LipatError::new("resourceLimit", "XML part exceeds 8 MiB"));
+    if bytes.len() > parts.limits.max_xml_bytes {
+        return Err(resource_limit("maxXmlBytes"));
     }
     std::str::from_utf8(bytes)
         .map_err(|_| LipatError::new("invalidPptx", "Expected UTF-8 XML part"))
 }
-pub(crate) fn parse_xml(text: &str) -> Result<roxmltree::Document<'_>> {
+pub(crate) fn parse_xml<'a>(
+    text: &'a str,
+    limits: &ResourceLimits,
+) -> Result<roxmltree::Document<'a>> {
+    if text.len() > limits.max_xml_bytes {
+        return Err(resource_limit("maxXmlBytes"));
+    }
     roxmltree::Document::parse_with_options(
         text,
         roxmltree::ParsingOptions {
             allow_dtd: false,
-            nodes_limit: 200000,
+            nodes_limit: limits.max_xml_nodes,
         },
     )
-    .map_err(|_| LipatError::new("invalidPptx", "Malformed or over-budget XML part"))
+    .map_err(|error| {
+        if matches!(error, roxmltree::Error::NodesLimitReached) {
+            resource_limit("maxXmlNodes")
+        } else {
+            LipatError::new("invalidPptx", "Malformed XML part")
+        }
+    })
 }
 pub(crate) fn rels_path(path: &str) -> String {
     let (dir, name) = path.rsplit_once('/').unwrap_or(("", path));
@@ -153,7 +197,7 @@ pub(crate) fn relationships(parts: &Parts, path: &str) -> Result<BTreeMap<String
     if !parts.contains_key(&rel_path) {
         return Ok(BTreeMap::new());
     }
-    let doc = parse_xml(xml_text(parts, &rel_path)?)?;
+    let doc = parse_xml(xml_text(parts, &rel_path)?, &parts.limits)?;
     let mut out = BTreeMap::new();
     for n in doc
         .root_element()

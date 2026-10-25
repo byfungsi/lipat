@@ -27,6 +27,7 @@ export default defineConfig({
           { text: "Images and URLs", link: "/images" },
           { text: "PPTX import/export", link: "/pptx" },
           { text: "WASM and native", link: "/wasm" },
+          { text: "Resource limits", link: "/limits" },
           { text: "Support & parity", link: "/support" },
           { text: "Verification", link: "/verification" },
         ],

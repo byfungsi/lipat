@@ -14,3 +14,5 @@ export {
   LayoutDiagnostics,
 } from "./deck-editor";
 export { DeckPreview, DeckPlayer } from "./deck-preview";
+export { ScenePreview, ScenePlayer } from "./scene-presentation";
+export type { ScenePreviewProps, ScenePlayerProps } from "./scene-presentation";

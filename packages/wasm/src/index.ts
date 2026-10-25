@@ -1,1 +1,1 @@
-export { createLipat } from "./wasm-engine";
+export { createLipat, createLipatFromModule } from "./wasm-engine";

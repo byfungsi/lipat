@@ -25,3 +25,9 @@ LIPAT_PYTHON=.venv/bin/python npm run verify:interop
 ## Package preparation
 
 `npm run build` puts ESM, declarations and the compiled WASM asset in `packages/lipat/dist`. The public package is `@byfungsi/lipat`. The facade bundles all private TypeScript workspaces; no private packages need to be published. React and Motion are optional peers. Run `npm pack -w @byfungsi/lipat` to inspect a release locally. The GitHub Pages workflow verifies and deploys documentation from main using the /lipat/ base path. Release archives are prepared with `npm run release:prepare` and published explicitly as `@byfungsi/lipat`.
+
+## Worker and artifact integration
+
+`npm run verify:workerd` uses Miniflare's real workerd and a compiled-WASM module binding. It exercises public SDK initialization, document validation, layout, PPTX export/import, animation metadata and host-limit errors. Its control confirms dynamic byte compilation is denied without patching globals. This runs in the main verification command and CI.
+
+Browser verification also builds a scene-only fixture, confirms it contains no WASM bridge, decodes embedded raster data, records zero external resource requests through preview/playback/navigation under the embedded-only policy, and checks explicit opt-in and scene replacement cleanup. Packed-consumer checks include scene-only SSR, browser bundle isolation and Cloudflare's published Worker types.

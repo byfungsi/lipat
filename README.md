@@ -1,6 +1,6 @@
 # Lipat
 
-An agent-friendly slide authoring engine with an independent PPTX parser and exporter. Create slides from semantic JSON, TypeScript presets or Markdown; edit by stable IDs; compile into a shared scene for preview and export. The portable Rust core runs natively and as real WebAssembly in browsers and Node.
+An agent-friendly slide authoring engine with an independent PPTX parser and exporter. Create slides from semantic JSON, TypeScript presets or Markdown; edit by stable IDs; compile into a shared scene for preview and export. The portable Rust core runs natively and as real WebAssembly in browsers, Node and Workers with imported precompiled modules.
 
 Inspired by [Nori](https://github.com/byfungsi/nori)'s headless model/runtime/adapters and [reveal.js](https://github.com/hakimel/reveal.js)'s declarative presentation flow. Lipat's primary source is an abstract authoring document. PPTX is a separate file adapter.
 
@@ -154,3 +154,11 @@ Workspace crates are path dependencies until published. `cargo run -p lipat-wasm
 `npm run verify` checks dependency boundaries, strict/headless TypeScript, behavioral/property/React tests through the real WASM engine, native Rust tests, native/WASM equivalence, builds, an isolated packed npm consumer, optional React/SSR isolation and documentation generation/build.
 
 `npm run verify:browser` exercises the built demo in a real Chromium browser. `npm run verify:interop` independently opens exported PPTX with python-pptx after installing `scripts/requirements-interop.txt`. `npm run verify:openxml` validates animated and linked-image packages with Microsoft’s Open XML SDK (.NET 8 required). CI runs these extra checks too.
+
+## Worker and immutable Artifact hosts
+
+Version **0.4.0** adds `createLipatFromModule(module, {limits})` for precompiled Worker WASM while preserving `createLipat(bytes, {limits})`. Both share one ABI bridge and native resource budgets. See [Worker setup](docs/wasm.md) and [limit enforcement](docs/limits.md).
+
+`ScenePreview` and `ScenePlayer` from `/react` accept a `SlideScene` directly, with no authoring runtime or WASM initialization. They default to `imagePolicy="embedded-only"`. Existing runtime viewers accept the same policy. [Scene viewer guide](docs/react.md) · [Live sample](https://byfungsi.github.io/lipat/playground/scene.html).
+
+`npm run verify:workerd` tests the real restricted runtime; browser checks verify scene-only rendering without external fetches. Resource budgets bound admitted processing, not elapsed time or total heap usage; synchronous WASM cannot be interrupted by a JavaScript timer on the same thread.

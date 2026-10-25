@@ -1,0 +1,80 @@
+import type { SlideScene } from "@byfungsi/lipat/model";
+/** Resolved immutable artifact fixture, constructed without an engine or WASM initialization. */
+export const artifactScene: SlideScene = {
+  version: 1,
+  title: "Immutable artifact",
+  size: { width: 960, height: 540 },
+  assets: [
+    {
+      id: "pixel",
+      mimeType: "image/png",
+      data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==",
+    },
+  ],
+  slides: [
+    {
+      id: "one",
+      title: "First",
+      notes: "Scene notes",
+      hidden: false,
+      background: "#FFFFFF",
+      elements: [
+        {
+          id: "text",
+          type: "text",
+          text: "Scene without WASM",
+          runs: [],
+          lines: ["Scene without WASM"],
+          lineHeight: 30,
+          frame: { x: 20, y: 20, width: 600, height: 100 },
+          style: {},
+        },
+        {
+          id: "remote",
+          type: "image",
+          url: "https://tracker.invalid/remote.png",
+          alt: "Remote",
+          fit: "contain",
+          frame: { x: 20, y: 150, width: 200, height: 100 },
+          style: {},
+          step: 1,
+          animation: { effect: "fade", durationMs: 60 },
+        },
+        {
+          id: "embedded",
+          type: "image",
+          assetId: "pixel",
+          alt: "Embedded raster",
+          fit: "stretch",
+          frame: { x: 260, y: 150, width: 200, height: 100 },
+          style: {},
+        },
+        {
+          id: "paint",
+          type: "shape",
+          geometry: "rect",
+          fill: "url(https://tracker.invalid/paint.svg#p)",
+          stroke: null,
+          frame: { x: 500, y: 150, width: 200, height: 100 },
+          style: {},
+        },
+      ],
+    },
+    {
+      id: "hidden",
+      title: "Hidden",
+      notes: "",
+      hidden: true,
+      background: "#FFFFFF",
+      elements: [],
+    },
+    {
+      id: "two",
+      title: "Last",
+      notes: "Last notes",
+      hidden: false,
+      background: "#FFFFFF",
+      elements: [],
+    },
+  ],
+};

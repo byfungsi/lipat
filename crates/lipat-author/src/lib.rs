@@ -179,7 +179,15 @@ fn insert_node(doc: &mut DeckDocument, parent_id: &str, index: usize, node: Node
 }
 /// Validate the final candidate only; a failed batch never mutates the supplied document.
 pub fn apply_operations(doc: &DeckDocument, operations: &[Operation]) -> Result<DeckDocument> {
-    check_document(doc)?;
+    apply_operations_with_limits(doc, operations, &ResourceLimits::default())
+}
+/// Apply an atomic batch while retaining host document budgets on the final candidate.
+pub fn apply_operations_with_limits(
+    doc: &DeckDocument,
+    operations: &[Operation],
+    limits: &ResourceLimits,
+) -> Result<DeckDocument> {
+    check_document_with_limits(doc, limits)?;
     if operations.len() > 10000 {
         return Err(LipatError::new(
             "resourceLimit",
@@ -353,7 +361,7 @@ pub fn apply_operations(doc: &DeckDocument, operations: &[Operation]) -> Result<
             }
         }
     }
-    check_document(&next)?;
+    check_document_with_limits(&next, limits)?;
     Ok(next)
 }
 fn merge_style(old: &mut TextStyle, new: &TextStyle) {

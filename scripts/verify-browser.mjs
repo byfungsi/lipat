@@ -487,6 +487,41 @@ try {
   )
     throw new Error("Image URL controls overflow on mobile");
 
+  const sceneRequests = [];
+  const recordSceneRequest = (request) => sceneRequests.push(request.url());
+  page.on("request", recordSceneRequest);
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto("http://127.0.0.1:4178/scene.html");
+  await page.locator(".lipat-preview svg").waitFor();
+  await page.getByRole("button", { name: "Present", exact: true }).click();
+  const scenePlayer = page.locator(".lipat-player");
+  await scenePlayer.getByRole("button", { name: "Next", exact: true }).click();
+  await assertPlaybackGeometry(
+    scenePlayer.locator('[data-playback-id="paper-image"]'),
+    "scene-only image zoom",
+  );
+  await page.screenshot({
+    path: "artifacts/scene-only-playground.png",
+    fullPage: true,
+  });
+  await scenePlayer.getByRole("button", { name: "Next", exact: true }).click();
+  await scenePlayer.getByRole("button", { name: "Next", exact: true }).click();
+  await assertPlaybackGeometry(
+    scenePlayer.locator('[data-playback-id="next-body"]'),
+    "scene-only rise",
+  );
+  if (
+    sceneRequests.some(
+      (url) =>
+        url.includes(".wasm") || !url.startsWith("http://127.0.0.1:4178/"),
+    )
+  )
+    throw new Error(
+      "Scene-only sample requested WASM or external resources: " +
+        sceneRequests.join(","),
+    );
+  page.off("request", recordSceneRequest);
+
   docsServer = spawn(
     process.execPath,
     [

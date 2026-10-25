@@ -219,7 +219,14 @@ fn group_start() -> String {
 }
 /// Export a canonical scene as an interoperable PPTX; arbitrary source parts are not preserved.
 pub fn write_pptx(scene: &SlideScene) -> Result<ExportedPresentation> {
-    check_scene(scene)?;
+    write_pptx_with_limits(scene, &ResourceLimits::default())
+}
+/// Export a scene admitted under the host's shared document and scene budgets.
+pub fn write_pptx_with_limits(
+    scene: &SlideScene,
+    limits: &ResourceLimits,
+) -> Result<ExportedPresentation> {
+    check_scene_with_limits(scene, limits)?;
     let total_steps: u64 = scene
         .slides
         .iter()

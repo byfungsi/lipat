@@ -1,4 +1,6 @@
 import { beforeAll, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { createLipatFromModule } from "@byfungsi/lipat";
 import { execFileSync } from "node:child_process";
 import { testEngine, inputDeck, unwrap } from "./engine-fixture";
 beforeAll(() => {
@@ -79,4 +81,43 @@ it("native and WASM produce byte-for-byte equal JSON layout and edit results", (
       bytes: Buffer.from(output.bytes).toString("base64"),
     }),
   ).toEqual(engine.parsePptx(output.bytes));
+});
+
+it("native and WASM enforce the same per-operation host budgets", () => {
+  const module = new WebAssembly.Module(
+    new Uint8Array(readFileSync("packages/wasm/lipat.wasm")),
+  );
+  const native = (request: object): unknown =>
+    JSON.parse(
+      execFileSync("target/debug/lipat-native", {
+        input: JSON.stringify(request),
+        encoding: "utf8",
+      }),
+    );
+  const document = unwrap(testEngine().parseDocument(inputDeck));
+  for (const limits of [
+    { maxNodes: 1 },
+    { maxTextBytes: 2 },
+    { maxLayoutWork: 1 },
+    { maxTextLines: 0 },
+    { maxSceneElements: 1 },
+  ]) {
+    const engine = unwrap(createLipatFromModule(module, { limits }));
+    expect(native({ operation: "compile", document, limits })).toEqual(
+      engine.compile(document),
+    );
+  }
+  const fixture = new Uint8Array(
+    readFileSync("tests/fixtures/python-pptx.pptx"),
+  );
+  const limits = { maxEntries: 1 };
+  expect(
+    native({
+      operation: "parsePptx",
+      bytes: Buffer.from(fixture).toString("base64"),
+      limits,
+    }),
+  ).toEqual(
+    unwrap(createLipatFromModule(module, { limits })).parsePptx(fixture),
+  );
 });

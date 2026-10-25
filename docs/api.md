@@ -4,7 +4,7 @@ All expected failures are `LipatResult<T>` with a stable `error.reason` and a re
 
 ## Engine
 
-`createLipat(wasmBytes)` creates a synchronous engine instance from an explicitly supplied `Uint8Array`. `engine.parseDocument(unknown)` validates/copies/freezes source; `compile(document, options)` returns `{scene, diagnostics}`; `applyDocument(document, operations)` returns a new validated document. `parsePptx(bytes)`, `writePptx(scene)` and `importScene(scene)` are independent capabilities.
+`createLipat(wasmBytes, options?)` and `createLipatFromModule(module, options?)` create synchronous engine instances from an explicitly supplied `Uint8Array`. `engine.parseDocument(unknown)` validates/copies/freezes source; `compile(document, options)` returns `{scene, diagnostics}`; `applyDocument(document, operations)` returns a new validated document. `parsePptx(bytes)`, `writePptx(scene)` and `importScene(scene)` are independent capabilities.
 
 ## Runtime
 
@@ -37,3 +37,9 @@ Node moves use the insertion index after removing the original node. A node cann
 ## Image resolution
 
 `/images` exports `createImageLoader`, `embedDocumentImages` and `embedSceneImages`. `/pptx` and the root entry export `writePptxWithImages`. Hosts supply the network capability; failures return Result values. See [image URLs](./images.md) for embedding, linked export and limits.
+
+## Scene viewers and resource policy
+
+`/react` exports `ScenePreview` and `ScenePlayer`, accepting `SlideScene` without an authoring runtime. They default to embedded raster images only; existing runtime wrappers accept the same `imagePolicy` prop. `renderSlideSvg`, `renderDeckHtml`, `renderRevealMarkup` and `updateRevealPresentation` accept `imagePolicy` options for headless hosts. See [React](./react.md).
+
+`ResourceLimits` and `LipatOptions` are exported from the root/model. Both engine factories apply validated, immutable host budgets. See [resource limits](./limits.md) for fields, enforcement stages and host responsibilities.

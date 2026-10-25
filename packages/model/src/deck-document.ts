@@ -336,6 +336,33 @@ export type DeckOperation =
   | { readonly type: "setTheme"; readonly theme: DeckTheme }
   | { readonly type: "upsertAsset"; readonly asset: DeckAsset }
   | { readonly type: "deleteAsset"; readonly assetId: string };
+/** Lower the native processing ceilings per engine; omitted limits retain defaults. No limit is a wall-clock timeout. */
+export interface ResourceLimits {
+  readonly maxRequestBytes?: number;
+  readonly maxPptxBytes?: number;
+  readonly maxExpandedBytes?: number;
+  readonly maxEntryBytes?: number;
+  readonly maxEntries?: number;
+  readonly maxXmlBytes?: number;
+  readonly maxXmlNodes?: number;
+  readonly maxSlides?: number;
+  readonly maxNodes?: number;
+  readonly maxDepth?: number;
+  readonly maxAssetBytes?: number;
+  /** UTF-8 content bytes per node, including lists and table text. */
+  readonly maxTextBytes?: number;
+  readonly maxTextLines?: number;
+  /** Resolved layout primitives or parser materialization work, across slides and inherited content. */
+  readonly maxSceneElements?: number;
+  /** Total table cells admitted across the operation. */
+  readonly maxTableCells?: number;
+  /** Cumulative layout visits, style metadata, font/asset entries, text measurement bytes and uncached image bytes; bounds work rather than elapsed time. */
+  readonly maxLayoutWork?: number;
+}
+/** Engine configuration is copied at initialization and cannot be changed through later host mutations. */
+export interface LipatOptions {
+  readonly limits?: ResourceLimits;
+}
 /** Portable engine capability: no DOM, file access, network or React dependencies. */
 export interface LipatEngine {
   /** Validate and copy untrusted serialized document data. */
