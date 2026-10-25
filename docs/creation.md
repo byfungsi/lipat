@@ -63,6 +63,8 @@ if (source.ok) createDeck(source.value, { engine });
 
 Supported syntax: headings, paragraphs, ordered/unordered lists, fenced code, simple pipe tables and `![alt](asset:asset-id)` embedded images or `![alt](https://example.com/photo.png)` URL images. `---` separates horizontal slides; `--` starts a vertical slide under the preceding top-level slide. `Notes:` starts speaker notes through the end of that slide. Separators inside fenced code stay code. Rich inline Markdown and HTML are not supplied. Markdown parsing does not fetch remote images; see [image resolution](./images.md).
 
+Use `importMarkdown(source, {id, engine, compileOptions?})` for import feedback: it returns a validated `document`, compiled `scene`, detected slide count/source boundaries, and layout diagnostics. When a single slide overflows it adds `markdownSingleSlideOverflow`; headings still do not become slide breaks. See [measured diagnostics and host export policy](./diagnostics.md).
+
 ## Text measurement
 
 `deck.compile({fonts:[{family:'Arial',averageWidth:0.52,lineHeight:1.2,glyphWidths:{W:0.9,i:0.2}}]})` supplies normalized glyph widths and line-height multipliers. Missing glyphs use the supplied average. Without metrics the deterministic fallback emits `fontMetricsFallback`. Complex shaping, automatic font fitting and font embedding are outside this version.

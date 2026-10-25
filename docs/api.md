@@ -44,6 +44,8 @@ Node moves use the insertion index after removing the original node. A node cann
 
 `ResourceLimits` and `LipatOptions` are exported from the root/model. Both engine factories apply validated, immutable host budgets. See [resource limits](./limits.md) for fields, enforcement stages and host responsibilities.
 
+`DeckDiagnostic.bounds` provides measured/available rectangles and per-edge overflow for `textOverflow`, `layoutOverflow` and `outsideSlide`. `recommendations` carries stable remedy codes. `importMarkdown` at root/core adds `MarkdownImportOutput` with canonical `document`, `scene`, `diagnostics` and a `MarkdownImportSummary` containing slide count and parser-derived line boundaries. `fromMarkdown` retains its existing `DeckInput` result. See [layout and Markdown diagnostics](./diagnostics.md).
+
 ## Built-in editor and native hosts
 
 `/core` exports `createDeckEditorSession(deck, options)`. The session owns save/image task state, dirty snapshots and atomic editing commands while the host owns the runtime. `onSave(document, context)` persists an immutable snapshot; `resolveImage(input, context)` may perform any asynchronous host work before returning a final URL or embedded asset. See [editor contracts](./editor.md).

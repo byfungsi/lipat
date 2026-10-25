@@ -144,6 +144,72 @@ try {
     path: "artifacts/editor-mobile.png",
     fullPage: true,
   });
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.getByLabel("Open presentation", { exact: true }).setInputFiles({
+    name: "overflow.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from(
+      "# Report\n\n" + Array(16).fill("Content line").join("\n"),
+    ),
+  });
+  await page
+    .getByText("Imported 1 slide from Markdown", { exact: true })
+    .waitFor();
+  if (
+    !(await page.getByLabel("Markdown import summary").innerText()).includes(
+      "lines 1–18",
+    )
+  )
+    throw Error("Markdown import lost source boundaries");
+  if (
+    !(await page.getByRole("alert").innerText()).includes(
+      "Markdown produced one overflowing slide",
+    )
+  )
+    throw Error("One-slide Markdown overflow was not surfaced on import");
+  await page.getByRole("button", { name: "Present", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Dismiss message", exact: true })
+    .click();
+  const overflowExport = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Export PPTX ↗", exact: true })
+    .click();
+  await overflowExport;
+  if (
+    !(await page.getByRole("alert").innerText()).includes("Stack content needs")
+  )
+    throw Error("PPTX export discarded working-document layout warnings");
+  await page
+    .getByRole("button", { name: "Dismiss message", exact: true })
+    .click();
+  const overflowHtml = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Download HTML", exact: true })
+    .click();
+  await overflowHtml;
+  if (
+    !(await page.getByRole("alert").innerText()).includes("Stack content needs")
+  )
+    throw Error("HTML export discarded working-document layout warnings");
+  await page.screenshot({
+    path: "artifacts/markdown-overflow-diagnostics.png",
+    fullPage: true,
+  });
+  await page.getByLabel("Open presentation", { exact: true }).setInputFiles({
+    name: "split.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("# First\n\nBody\n---\n# Second"),
+  });
+  await page
+    .getByText("Imported 2 slides from Markdown", { exact: true })
+    .waitFor();
+  if (
+    (await page.getByRole("alert").innerText()).includes(
+      "Markdown produced one overflowing slide",
+    )
+  )
+    throw Error("Split Markdown retained a stale one-slide warning");
   const bundle = await build({
     entryPoints: ["tests/browser-default-editor-entry.tsx"],
     bundle: true,

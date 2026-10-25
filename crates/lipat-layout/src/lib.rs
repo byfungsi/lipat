@@ -53,6 +53,27 @@ impl Compiler<'_> {
             Some(id.into()),
         ));
     }
+    fn measured_diagnostic(
+        &mut self,
+        code: &str,
+        message: impl Into<String>,
+        id: &str,
+        bounds: DiagnosticBounds,
+        recommendations: Vec<DiagnosticRecommendation>,
+    ) {
+        let mut diagnostic =
+            Diagnostic::warning(code, message, Some(self.slide_id.clone()), Some(id.into()));
+        diagnostic.bounds = Some(bounds);
+        diagnostic.recommendations = recommendations;
+        self.diagnostics.push(diagnostic);
+    }
+    fn text_overflow(&mut self, id: &str, frame: Frame, width: f64, height: f64) {
+        if width > frame.width + 0.01 || height > frame.height + 0.01 {
+            self.measured_diagnostic("textOverflow", format!("Text needs {width:.1} × {height:.1} points; frame has {:.1} × {:.1}. Enlarge the frame, reduce the font size, or split the content.", frame.width, frame.height), id,
+                DiagnosticBounds::new(DiagnosticBoundsKind::Text, Frame { width, height, ..frame }, frame),
+                vec![DiagnosticRecommendation::ResizeNode, DiagnosticRecommendation::ReduceFontSize, DiagnosticRecommendation::SplitContent]);
+        }
+    }
     fn style(&mut self, n: &Node, parent: &TextStyle) -> Result<TextStyle> {
         let family_bytes = n
             .style
@@ -115,7 +136,7 @@ impl Compiler<'_> {
         style: &TextStyle,
         width: f64,
         id: &str,
-    ) -> Result<(Vec<String>, f64)> {
+    ) -> Result<(Vec<String>, f64, f64)> {
         if text.len() > self.limits.max_text_bytes {
             return Err(resource_limit("maxTextBytes"));
         }
@@ -137,30 +158,40 @@ impl Compiler<'_> {
             factor * size
         };
         let mut lines = Vec::new();
+        let mut max_width: f64 = 0.;
         for paragraph in text.split('\n') {
             let mut current = String::new();
             let mut used = 0.;
+            let mut visible_width = 0.;
             for word in paragraph.split_inclusive(' ') {
                 let word_width: f64 = word.chars().map(char_width).sum();
                 if used + word_width > width && !current.is_empty() {
                     self.push_line(&mut lines, current.trim_end().into())?;
+                    max_width = max_width.max(visible_width);
                     current.clear();
                     used = 0.;
+                    visible_width = 0.;
                 }
                 for ch in word.chars() {
                     let w = char_width(ch);
                     if used + w > width && !current.is_empty() {
                         self.push_line(&mut lines, std::mem::take(&mut current))?;
+                        max_width = max_width.max(visible_width);
                         used = 0.;
+                        visible_width = 0.;
                     }
                     current.push(ch);
                     used += w;
+                    if !ch.is_whitespace() {
+                        visible_width = used;
+                    }
                 }
             }
             self.push_line(&mut lines, current.trim_end().into())?;
+            max_width = max_width.max(visible_width);
         }
         let height = lines.len() as f64 * size * line_height;
-        Ok((lines, height))
+        Ok((lines, height, max_width))
     }
     fn natural_height(&mut self, n: &Node, width: f64, parent: &TextStyle) -> Result<f64> {
         self.charge_work(1)?;
@@ -315,10 +346,13 @@ impl Compiler<'_> {
                     y += h + gap;
                 }
                 if y - gap > frame.y + frame.height + 0.01 {
-                    self.diagnostic(
+                    let height = (y - gap - frame.y).max(0.);
+                    self.measured_diagnostic(
                         "layoutOverflow",
-                        "Stack content exceeds the available height",
+                        format!("Stack content needs {height:.1} points; container has {:.1}. Enlarge the container or split content across slides.", frame.height),
                         &n.id,
+                        DiagnosticBounds::new(DiagnosticBoundsKind::Layout, Frame { height, ..frame }, frame),
+                        vec![DiagnosticRecommendation::ResizeNode, DiagnosticRecommendation::SplitContent],
                     );
                 }
             }
@@ -373,10 +407,13 @@ impl Compiler<'_> {
                     y += h + gap;
                 }
                 if y - gap > frame.y + frame.height + 0.01 {
-                    self.diagnostic(
+                    let height = (y - gap - frame.y).max(0.);
+                    self.measured_diagnostic(
                         "layoutOverflow",
-                        "Grid content exceeds the available height",
+                        format!("Grid content needs {height:.1} points; container has {:.1}. Enlarge the container or split content across slides.", frame.height),
                         &n.id,
+                        DiagnosticBounds::new(DiagnosticBoundsKind::Layout, Frame { height, ..frame }, frame),
+                        vec![DiagnosticRecommendation::ResizeNode, DiagnosticRecommendation::SplitContent],
                     );
                 }
             }
@@ -393,17 +430,9 @@ impl Compiler<'_> {
                 let kind = match &n.kind {
                     NodeKind::Heading { text, .. } | NodeKind::Text { text } => {
                         let plain = text.text();
-                        let (lines, height) = self.lines(&plain, &style, frame.width, &n.id)?;
-                        if height > frame.height + 0.01 {
-                            self.diagnostic(
-                                "textOverflow",
-                                format!(
-                                    "Text needs {height:.1} points; frame has {:.1}",
-                                    frame.height
-                                ),
-                                &n.id,
-                            );
-                        }
+                        let (lines, height, width) =
+                            self.lines(&plain, &style, frame.width, &n.id)?;
+                        self.text_overflow(&n.id, frame, width, height);
                         SceneKind::Text {
                             text: plain,
                             runs: text.runs(),
@@ -412,14 +441,9 @@ impl Compiler<'_> {
                         }
                     }
                     NodeKind::Code { text, .. } => {
-                        let (lines, height) = self.lines(text, &style, frame.width, &n.id)?;
-                        if height > frame.height + 0.01 {
-                            self.diagnostic(
-                                "textOverflow",
-                                "Code exceeds the available height",
-                                &n.id,
-                            );
-                        }
+                        let (lines, height, width) =
+                            self.lines(text, &style, frame.width, &n.id)?;
+                        self.text_overflow(&n.id, frame, width, height);
                         SceneKind::Text {
                             text: text.clone(),
                             runs: vec![TextRun {
@@ -443,14 +467,9 @@ impl Compiler<'_> {
                             })
                             .collect::<Vec<_>>()
                             .join("\n");
-                        let (lines, height) = self.lines(&text, &style, frame.width, &n.id)?;
-                        if height > frame.height + 0.01 {
-                            self.diagnostic(
-                                "textOverflow",
-                                "List exceeds the available height",
-                                &n.id,
-                            );
-                        }
+                        let (lines, height, width) =
+                            self.lines(&text, &style, frame.width, &n.id)?;
+                        self.text_overflow(&n.id, frame, width, height);
                         SceneKind::Text {
                             runs: vec![TextRun {
                                 text: text.clone(),
@@ -575,16 +594,20 @@ pub fn compile_document_with_limits(
             &mut elements,
         )?;
         for e in &elements {
-            if e.frame.x < 0.
-                || e.frame.y < 0.
-                || e.frame.x + e.frame.width > doc.size.width + 0.01
-                || e.frame.y + e.frame.height > doc.size.height + 0.01
+            let measured = rotated_bounds(e.frame);
+            let available = Frame {
+                width: doc.size.width,
+                height: doc.size.height,
+                ..Frame::default()
+            };
+            if measured.x < -0.01
+                || measured.y < -0.01
+                || measured.x + measured.width > doc.size.width + 0.01
+                || measured.y + measured.height > doc.size.height + 0.01
             {
-                compiler.diagnostic(
-                    "outsideSlide",
-                    "Element extends outside the slide bounds",
-                    &e.id,
-                );
+                compiler.measured_diagnostic("outsideSlide", "Element extends outside the slide bounds. Move or resize the element to fit the slide.", &e.id,
+                    DiagnosticBounds::new(DiagnosticBoundsKind::Slide, measured, available),
+                    vec![DiagnosticRecommendation::MoveNode, DiagnosticRecommendation::ResizeNode]);
             }
         }
         slides.push(SceneSlide {
@@ -610,4 +633,18 @@ pub fn compile_document_with_limits(
         },
         diagnostics: compiler.diagnostics,
     })
+}
+
+// Scene rotation is around the element center, matching SVG/PPTX rendering.
+fn rotated_bounds(frame: Frame) -> Frame {
+    let angle = frame.rotation.to_radians();
+    let width = frame.width * angle.cos().abs() + frame.height * angle.sin().abs();
+    let height = frame.width * angle.sin().abs() + frame.height * angle.cos().abs();
+    Frame {
+        x: frame.x + (frame.width - width) / 2.,
+        y: frame.y + (frame.height - height) / 2.,
+        width,
+        height,
+        rotation: 0.,
+    }
 }

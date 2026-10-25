@@ -35,6 +35,57 @@ pub struct Diagnostic {
     pub slide_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub node_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bounds: Option<DiagnosticBounds>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub recommendations: Vec<DiagnosticRecommendation>,
+}
+/// Required and available rectangles use the same point coordinate space; overflow is nonnegative.
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DiagnosticBounds {
+    pub kind: DiagnosticBoundsKind,
+    pub measured: Frame,
+    pub available: Frame,
+    pub overflow: DiagnosticOverflow,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum DiagnosticBoundsKind {
+    Text,
+    Layout,
+    Slide,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DiagnosticOverflow {
+    pub left: f64,
+    pub right: f64,
+    pub top: f64,
+    pub bottom: f64,
+}
+#[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum DiagnosticRecommendation {
+    ResizeNode,
+    ReduceFontSize,
+    SplitContent,
+    MoveNode,
+    AddSlideBreaks,
+}
+impl DiagnosticBounds {
+    pub fn new(kind: DiagnosticBoundsKind, measured: Frame, available: Frame) -> Self {
+        Self {
+            kind,
+            measured,
+            available,
+            overflow: DiagnosticOverflow {
+                left: (available.x - measured.x).max(0.),
+                right: (measured.x + measured.width - available.x - available.width).max(0.),
+                top: (available.y - measured.y).max(0.),
+                bottom: (measured.y + measured.height - available.y - available.height).max(0.),
+            },
+        }
+    }
 }
 impl Diagnostic {
     pub fn warning(
@@ -49,6 +100,8 @@ impl Diagnostic {
             message: message.into(),
             slide_id,
             node_id,
+            bounds: None,
+            recommendations: vec![],
         }
     }
 }

@@ -1,6 +1,6 @@
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createLipat, createDeck, fromMarkdown } from "@byfungsi/lipat";
+import { createLipat, createDeck, importMarkdown } from "@byfungsi/lipat";
 import type { LipatEngine } from "@byfungsi/lipat";
 import { DeckEditor, DeckPreview, DeckPlayer } from "@byfungsi/lipat/react";
 import { renderDeckHtml } from "@byfungsi/lipat/render";
@@ -8,7 +8,7 @@ import { createMotionPlayback } from "@byfungsi/lipat/motion";
 import { createImageLoader, embedSceneImages } from "@byfungsi/lipat/images";
 import { createImageDeck } from "./image-deck";
 import { createAgentTools } from "@byfungsi/lipat/agent";
-import type { DeckRuntime } from "@byfungsi/lipat/core";
+import type { DeckRuntime, MarkdownImportSummary } from "@byfungsi/lipat/core";
 import wasmUrl from "@byfungsi/lipat/lipat.wasm?url";
 import { sampleDeck } from "./sample-deck";
 import { animationDeck } from "./animation-deck";
@@ -38,6 +38,8 @@ function App({
     [mode, setMode] = useState<"edit" | "present" | "source">(initialMode),
     [playerSession, setPlayerSession] = useState(0),
     [error, setError] = useState(""),
+    [markdownSummary, setMarkdownSummary] =
+      useState<MarkdownImportSummary | null>(null),
     [exporting, setExporting] = useState(false),
     [imageUrl, setImageUrl] = useState(sampleImageUrl),
     [source, setSource] = useState(
@@ -54,6 +56,7 @@ function App({
       setPlayerSession((session) => session + 1);
       setSource(JSON.stringify(result.value.exportDocument(), null, 2));
       setError("");
+      setMarkdownSummary(null);
     } else setError(result.error.message);
   }
   async function exportDeck(format: "pptx" | "html" | "json") {
@@ -87,6 +90,7 @@ function App({
           "presentation.html",
           "text/html",
         );
+        setError(compiled.value.diagnostics.map((d) => d.message).join("\n"));
       } else {
         const r = engine.writePptx(embedded.value);
         if (r.ok) {
@@ -95,7 +99,11 @@ function App({
             "presentation.pptx",
             "application/vnd.openxmlformats-officedocument.presentationml.presentation",
           );
-          setError(r.value.diagnostics.map((d) => d.message).join("\n"));
+          setError(
+            [...compiled.value.diagnostics, ...r.value.diagnostics]
+              .map((d) => d.message)
+              .join("\n"),
+          );
         } else setError(r.error.message);
       }
     } finally {
@@ -135,11 +143,17 @@ function App({
                     } else setError(doc.error.message);
                   } else setError(r.error.message);
                 } else if (file.name.endsWith(".md")) {
-                  const r = fromMarkdown(await file.text(), {
+                  const r = importMarkdown(await file.text(), {
                     id: "markdown-deck",
+                    engine,
                   });
-                  if (r.ok) replace(r.value);
-                  else setError(r.error.message);
+                  if (r.ok) {
+                    replace(r.value.document);
+                    setMarkdownSummary(r.value.summary);
+                    setError(
+                      r.value.diagnostics.map((d) => d.message).join("\n"),
+                    );
+                  } else setError(r.error.message);
                 } else {
                   try {
                     replace(JSON.parse(await file.text()));
@@ -157,6 +171,28 @@ function App({
         </div>
       </header>
       <main>
+        {markdownSummary ? (
+          <details aria-label="Markdown import summary" open>
+            <summary>
+              Imported {markdownSummary.slideCount}{" "}
+              {markdownSummary.slideCount === 1 ? "slide" : "slides"} from
+              Markdown
+            </summary>
+            <ul>
+              {markdownSummary.boundaries.map((boundary) => (
+                <li key={boundary.slideId}>
+                  {boundary.slideId}:{" "}
+                  {boundary.startLine === boundary.endLine
+                    ? `empty slide at line ${boundary.startLine}`
+                    : `lines ${boundary.startLine}–${boundary.endLine - 1}`}
+                  {boundary.separatorBefore.kind === "start"
+                    ? " · document start"
+                    : ` · ${boundary.separatorBefore.kind} separator at line ${boundary.separatorBefore.line}`}
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
         <div className="page-heading">
           <div>
             <div className="eyebrow">THE PLAYGROUND</div>

@@ -1,5 +1,12 @@
 export * from "./deck-runtime";
-export { fromMarkdown } from "./markdown-authoring";
+export { fromMarkdown, importMarkdown } from "./markdown-authoring";
+export type {
+  MarkdownAuthoringOptions,
+  MarkdownSlideBoundary,
+  MarkdownImportSummary,
+  MarkdownImportOptions,
+  MarkdownImportOutput,
+} from "./markdown-authoring";
 export {
   deckThemes,
   createTitleSlide,
