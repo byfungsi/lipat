@@ -20,6 +20,11 @@ for (const path of [
   "dist/motion.d.ts",
   "dist/images.js",
   "dist/images.d.ts",
+  "dist/native.js",
+  "dist/native.d.ts",
+  "dist/react-native.js",
+  "dist/react-native.d.ts",
+  "dist/editor.css",
   "README.md",
   "LICENSE",
 ])
@@ -41,4 +46,39 @@ writeFileSync(
 );
 console.log(
   `Prepared ${pkg.name}@${pkg.version}: artifacts/release/${packed.filename}`,
+);
+const native = JSON.parse(
+  readFileSync("packages/lipat-native/package.json", "utf8"),
+);
+if (native.version !== pkg.version)
+  throw Error("Main/native package versions must match");
+execFileSync("npm", ["run", "build", "-w", "@byfungsi/lipat-native"], {
+  stdio: "inherit",
+});
+const nativePacked = JSON.parse(
+  execFileSync(
+    "npm",
+    ["pack", "--json", "--pack-destination", "../../artifacts/release"],
+    {
+      cwd: "packages/lipat-native",
+      encoding: "utf8",
+    },
+  ),
+)[0];
+writeFileSync(
+  "artifacts/release/native-manifest.json",
+  JSON.stringify(
+    {
+      name: native.name,
+      version: native.version,
+      filename: nativePacked.filename,
+      integrity: nativePacked.integrity,
+      shasum: nativePacked.shasum,
+    },
+    null,
+    2,
+  ) + "\n",
+);
+console.log(
+  `Prepared ${native.name}@${native.version}: artifacts/release/${nativePacked.filename}`,
 );

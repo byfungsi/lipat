@@ -16,7 +16,7 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+          targets: wasm32-unknown-unknown,aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
       - run: npm run build:native:android
@@ -29,7 +29,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - run: npm run build -w @byfungsi/lipat && npm run build -w @byfungsi/lipat-native
+      - run: npm run build:wasm && npm run build -w @byfungsi/lipat && npm run build -w @byfungsi/lipat-native
       - run: npx expo prebuild --platform android --no-install
         working-directory: examples/native-demo
       - run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon

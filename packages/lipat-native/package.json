@@ -20,7 +20,8 @@
     }
   },
   "scripts": {
-    "build": "node ../../scripts/sync-native-addon.mjs && tsup --config tsup.config.ts"
+    "build": "node ../../scripts/sync-native-addon.mjs && tsup --config tsup.config.ts",
+    "prepack": "node ../../scripts/check-native-package.mjs"
   },
   "peerDependencies": {
     "@byfungsi/lipat": "^0.5.0",
