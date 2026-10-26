@@ -2,7 +2,7 @@
 
 Unreleased additions after 0.6.0; use the current source build until the next package release.
 
-Lipat includes **30 original six-slide deck templates** spanning business, education, research, health, public service, operations and creative work. They are complete editable decks with text, shapes, native charts where useful, speaker notes and embedded original SVG artwork. They render without remote images or fonts. All sample figures, organizations, quotations and scenarios are illustrative.
+Lipat includes **30 original six-slide deck templates** spanning business, education, research, health, public service, operations and creative work. They are complete editable decks with text, shapes, native charts where useful, speaker notes and embedded editorial photography. They render without remote images or fonts. All sample figures, organizations, quotations and scenarios are illustrative.
 
 [Browse the template gallery](./playground/index.html?sample=templates). Preview every slide, open a deck in the editor, or download a ready-to-use PPTX. The gallery's source JSON and standalone HTML downloads are also generated alongside each template's PPTX.
 
@@ -44,7 +44,7 @@ if (input.ok) {
 
 The optional `/templates` entrypoint keeps the catalog out of core/Worker imports that do not use it. An unknown template ID returns `invalidTemplate`. An optional deck ID must be an ASCII slug of 1–128 letters, digits, dots, underscores or hyphens, starting with a letter or digit. Each call creates independent nodes, chart arrays, theme and assets.
 
-The canvas is 1280 × 720 points. Templates use Arial, Georgia and Courier New as portable font requests; the host controls installed fonts and metrics. These names do not bundle those fonts. SVG compatibility PNGs use bundled OFL Lato for text if a requested font is unavailable. Template artwork itself consists of shapes and paths; meaningful labels remain ordinary editable text.
+The canvas is 1280 × 720 points. Templates use Arial, Georgia and Courier New as portable font requests; the host controls installed fonts and metrics. These names do not bundle those fonts. Photographs are embedded JPEGs; meaningful labels remain ordinary editable text. Fifteen original AI-generated illustrative photographs are shared across six cover composition families. The asset prompts and provenance are recorded in `packages/templates/assets/README.md`. They depict fictional subjects, not real projects or evidence. The optional templates bundle includes roughly 3.4 MB of JPEG source imagery (base64 adds overhead); importing the core SDK does not load it.
 
 ## Thirty starting points
 
@@ -89,4 +89,6 @@ Replacing text can change wrapping. Recompile after edits, inspect measured diag
 
 ## Design references
 
-The collection uses original layouts and artwork informed by first-party guidance on readable hierarchy, purposeful whitespace and consistent alignment: [Microsoft's presentation guidance](https://support.microsoft.com/en-us/powerpoint/tips-for-creating-and-delivering-an-effective-presentation), [Canva on whitespace](https://www.canva.com/learn/white-space-design/), [Duarte on contrast](https://www.duarte.com/blog/ultimate-guide-to-contrast/), and [Sequoia's pitch narrative](https://articles.sequoiacap.com/writing-a-business-plan). No proprietary template files, logos or reference screenshots are shipped.
+The collection uses original layouts and imagery informed by first-party guidance on readable hierarchy, purposeful whitespace and consistent alignment: [Microsoft's presentation guidance](https://support.microsoft.com/en-us/powerpoint/tips-for-creating-and-delivering-an-effective-presentation), [Canva on whitespace](https://www.canva.com/learn/white-space-design/), [Duarte on contrast](https://www.duarte.com/blog/ultimate-guide-to-contrast/), and [Sequoia's pitch narrative](https://articles.sequoiacap.com/writing-a-business-plan). No proprietary template files, logos or reference screenshots are shipped.
+
+The photographic revision follows [a critique and visual research](research/presentation-template-redesign.md), including Pentagram’s architecture and craft art direction. Covers use large display headlines; interiors alternate open editorial columns, photographic statements, quiet evidence charts and bold closing slides. Text, charts and photo frames remain editable.

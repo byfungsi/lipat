@@ -3,7 +3,8 @@ import type { DeckInput, LipatResult } from "@lipat-internal/model";
 import { businessTemplates } from "./business-templates";
 import { knowledgeTemplates } from "./knowledge-templates";
 import { industryTemplates } from "./industry-templates";
-import { createTemplateArtwork } from "./template-artwork";
+import { createTemplatePhoto } from "./template-photography.generated";
+import { templateArtDirections } from "./template-art-direction";
 import { createTemplateSlide } from "./template-layout";
 import type {
   PresentationTemplateInfo,
@@ -26,7 +27,15 @@ export const presentationTemplates: readonly PresentationTemplateInfo[] =
       description: recipe.description,
       palette: recipe.palette,
       slideCount: 6 as const,
-      slideTitles: recipe.slides.map((slide) => slide.title),
+      slideTitles: recipe.slides.map((slide, index) =>
+        index === 0
+          ? (
+              templateArtDirections.find(
+                (direction) => direction.templateId === recipe.id,
+              )?.title ?? slide.title
+            ).replace(/\n/g, " ")
+          : slide.title,
+      ),
     })),
   );
 
@@ -44,6 +53,17 @@ export function createPresentationTemplate(
         message: `Presentation template does not exist: ${templateId}`,
       },
     };
+  const direction = templateArtDirections.find(
+    (direction) => direction.templateId === found.id,
+  );
+  if (!direction)
+    return {
+      ok: false,
+      error: {
+        reason: "invalidTemplate",
+        message: `Missing art direction: ${found.id}`,
+      },
+    };
   const id = options.id ?? found.id;
   if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id))
     return {
@@ -55,15 +75,20 @@ export function createPresentationTemplate(
       },
     };
   const recipe = { ...found, id };
-  const [background, foreground, accent, secondary] = recipe.palette;
+  const [background, foreground, accent] = recipe.palette;
   const slides = recipe.slides.map((slide, index) =>
     createTemplateSlide(
       recipe,
-      index === 0 && options.title !== undefined
-        ? { ...slide, title: options.title }
+      index === 0
+        ? {
+            ...slide,
+            title: options.title ?? direction.title,
+            body: direction.subtitle,
+          }
         : slide,
       index,
       options.organization ?? "Your organization",
+      direction,
     ),
   );
   return {
@@ -84,12 +109,10 @@ export function createPresentationTemplate(
         gap: 24,
       },
       assets: [
-        createTemplateArtwork(
-          recipe.motif,
-          recipe.cover === "split" ? foreground : accent,
-          secondary,
-          foreground,
-        ),
+        createTemplatePhoto(direction.photo),
+        ...(direction.detailPhoto
+          ? [createTemplatePhoto(direction.detailPhoto)]
+          : []),
       ],
       slides,
     },

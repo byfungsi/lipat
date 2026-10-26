@@ -16,8 +16,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "A crisp investor story from customer friction to a focused funding ask.",
     palette: ["#101A2D", "#F4F7FC", "#A3E635", "#64C7E8"],
     font: "Arial",
-    cover: "orbit",
-    motif: "orbit",
     slides: [
       templateCover(
         "Less busywork. More momentum.",
@@ -88,8 +86,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "A quiet editorial board deck with a clear decision, evidence and accountable next step.",
     palette: ["#F3F1EB", "#17213A", "#B58B3D", "#527780"],
     font: "Georgia",
-    cover: "editorial",
-    motif: "ledger",
     slides: [
       templateCover(
         "A focused investment in service reliability.",
@@ -178,8 +174,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "An evidence-led commercial review with metrics, trends and segment performance.",
     palette: ["#F5F8FF", "#14224D", "#2F63D8", "#12A89A"],
     font: "Arial",
-    cover: "frame",
-    motif: "ledger",
     slides: [
       templateCover(
         "A stronger quarter. A clearer next move.",
@@ -255,8 +249,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "An outcome-driven roadmap with a horizon motif and clear commitments versus exploration.",
     palette: ["#F5F3FF", "#272044", "#7556D8", "#F0B54A"],
     font: "Arial",
-    cover: "arch",
-    motif: "horizon",
     slides: [
       templateCover(
         "Make the next step feel obvious.",
@@ -339,8 +331,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "A bold offer story with oversized type, a sculptural SVG hero and a practical rollout.",
     palette: ["#15141A", "#FFF8F0", "#FF7759", "#C2AEFA"],
     font: "Arial",
-    cover: "monolith",
-    motif: "studio",
     slides: [
       templateCover(
         "Meet the lighter way to get it done.",
@@ -413,8 +403,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "A directional strategy narrative with explicit choices, measurable priorities and a 90-day plan.",
     palette: ["#F8F6EF", "#1E3B35", "#347965", "#D79A39"],
     font: "Arial",
-    cover: "signal",
-    motif: "compass",
     slides: [
       templateCover(
         "Choose a direction. Make it matter.",
@@ -504,8 +492,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "An editorial services proposal with scope, delivery sequence and clearly differentiated options.",
     palette: ["#FCFAF5", "#233540", "#B86B45", "#7E9B94"],
     font: "Georgia",
-    cover: "editorial",
-    motif: "path",
     slides: [
       templateCover(
         "A clearer service, built together.",
@@ -592,8 +578,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "A colorful campaign deck connecting a central idea to audience, channels and measurement.",
     palette: ["#FFF4EF", "#341D34", "#E85D75", "#F4B63F"],
     font: "Arial",
-    cover: "stripe",
-    motif: "bands",
     slides: [
       templateCover(
         "Make room for something better.",
@@ -673,8 +657,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "A typographic brand story with beliefs, voice examples and an editable visual system.",
     palette: ["#F4EDE3", "#2D2926", "#C64A31", "#315C56"],
     font: "Georgia",
-    cover: "sunrise",
-    motif: "studio",
     slides: [
       templateCover(
         "Good things begin with a little space.",
@@ -699,7 +681,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       templateContent(
         "portfolio",
         "An identity with room to breathe.",
-        "A restrained palette, editorial type and original geometric forms.",
+        "Natural texture, warm color and a clear editorial voice.",
         [
           templateItem("Warm paper", "#F4EDE3 · generous negative space."),
           templateItem("Terracotta", "#C64A31 · a purposeful visual accent."),
@@ -739,8 +721,6 @@ export const businessTemplates: readonly TemplateRecipe[] = [
       "A grounded research readout that separates method, observation, interpretation and experiments.",
     palette: ["#FAF8F1", "#20332C", "#557C5A", "#D5AA58"],
     font: "Arial",
-    cover: "grid",
-    motif: "lens",
     slides: [
       templateCover(
         "Where confidence breaks in the first week.",

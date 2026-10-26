@@ -6,7 +6,7 @@ Inspired by [Nori](https://github.com/byfungsi/nori)'s headless model/runtime/ad
 
 ## Unreleased: charts, SVG and 30 complete templates
 
-Six editable chart kinds export as native PowerPoint charts with embedded XLSX data. Static SVG assets work in preview, native scenes and PPTX, with generated PNG compatibility fallbacks. The optional `/templates` entrypoint provides 30 original, editable six-slide decks across business, research, education, health, public service and creative domains.
+Six editable chart kinds export as native PowerPoint charts with embedded XLSX data. Static SVG assets work in preview, native scenes and PPTX, with generated PNG compatibility fallbacks. The optional `/templates` entrypoint provides 30 original, editable six-slide decks with embedded editorial photography across business, research, education, health, public service and creative domains.
 
 See [charts](docs/charts.md), [SVG images](docs/images.md#svg-image-assets), [templates](docs/templates.md) and the [design research](docs/research/presentation-template-design.md). These additions follow the published 0.6.0 release and are not part of that npm version.
 

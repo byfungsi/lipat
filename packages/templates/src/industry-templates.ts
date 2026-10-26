@@ -13,15 +13,13 @@ export const industryTemplates: readonly TemplateRecipe[] = [
     name: "Property Portfolio",
     domain: "Real estate opportunity",
     description:
-      "A composed asset brief with schematic artwork, facts, operating comparisons and diligence needs.",
+      "A composed asset brief with editorial photography, facts, operating comparisons and diligence needs.",
     palette: ["#F8F3EA", "#223E3B", "#A77E49", "#6D9491"],
     font: "Georgia",
-    cover: "monolith",
-    motif: "building",
     slides: [
       templateCover(
         "A flexible asset with a clearer next chapter.",
-        "Illustrative property opportunity · schematic details, sample operating data and a diligence-first approach.",
+        "Illustrative property opportunity · illustrative imagery, sample operating data and a diligence-first approach.",
         "Asset brief / Example House",
       ),
       templateContent(
@@ -44,7 +42,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
         "Start with a concise, verifiable fact sheet.",
         "Fictional example values, not facts about a real property.",
         [
-          templateItem("Floor area", "Illustrative usable area.", "2,400m²"),
+          templateItem("Floor area / m²", "Illustrative usable area.", "2,400"),
           templateItem("Flexible floors", "Sample configuration.", "4"),
           templateItem("Occupancy", "Illustrative current occupancy.", "76%"),
         ],
@@ -92,8 +90,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "A warm destination story with a guest journey, signature moments and transparent package options.",
     palette: ["#FBF3E6", "#263D3E", "#BF8258", "#5F9C9B"],
     font: "Georgia",
-    cover: "sunrise",
-    motif: "waves",
     slides: [
       templateCover(
         "A little slower. A little closer.",
@@ -127,7 +123,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       templateContent(
         "portfolio",
         "Three moments make the experience memorable.",
-        "Original abstract artwork keeps the concept complete without stock imagery.",
+        "Thoughtful details shape the rhythm of an unhurried stay.",
         [
           templateItem("Quiet mornings", "Space for an unhurried start."),
           templateItem(
@@ -179,8 +175,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "An editorial food concept with an occasion, signature offer, sourcing philosophy and tasting invitation.",
     palette: ["#FFF3DC", "#472F25", "#C76538", "#6A8353"],
     font: "Georgia",
-    cover: "editorial",
-    motif: "ingredient",
     slides: [
       templateCover(
         "Seasonal food. A generous table.",
@@ -194,8 +188,8 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       ),
       templateContent(
         "portfolio",
-        "A small menu with a clear point of view.",
-        "Fictional menu examples; ingredient and allergen information must be verified.",
+        "From the garden to the table.",
+        "Seasonal ingredients, careful preparation and a generous finish.",
         [
           templateItem(
             "From the garden",
@@ -251,8 +245,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "A confident seasonal retail plan linking customer signals, assortment, activation and readiness.",
     palette: ["#F9F1F0", "#382C38", "#B74A6B", "#B19864"],
     font: "Arial",
-    cover: "stripe",
-    motif: "retail",
     slides: [
       templateCover(
         "A season of fewer, better choices.",
@@ -275,7 +267,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       templateContent(
         "portfolio",
         "Give the assortment a clear rhythm.",
-        "Original product silhouettes are schematic and do not represent branded merchandise.",
+        "A considered edit of texture, color and everyday essentials.",
         [
           templateItem(
             "The everyday core",
@@ -337,8 +329,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "An orderly operating brief with a network, service baseline, risks and an improvement sequence.",
     palette: ["#F3F5F5", "#253C47", "#287E89", "#D69A36"],
     font: "Arial",
-    cover: "grid",
-    motif: "route",
     slides: [
       templateCover(
         "A more resilient route from source to service.",
@@ -430,8 +420,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "A restrained financial narrative separating history, forecast assumptions, scenarios and decisions.",
     palette: ["#F8F8F4", "#223148", "#456F9B", "#A2854B"],
     font: "Arial",
-    cover: "frame",
-    motif: "ledger",
     slides: [
       templateCover(
         "A disciplined outlook for the next quarter.",
@@ -515,8 +503,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "A clear risk brief with a threat model, control coverage, remediation owners and a bounded decision.",
     palette: ["#111C2A", "#F1F5FA", "#4BC3CE", "#E3AC53"],
     font: "Arial",
-    cover: "signal",
-    motif: "shield",
     slides: [
       templateCover(
         "A clearer posture. A focused response.",
@@ -608,8 +594,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "A developer story with editable code, architectural boundaries and an honest performance example.",
     palette: ["#151626", "#F3F3FF", "#A899FF", "#6BD6BB"],
     font: "Arial",
-    cover: "orbit",
-    motif: "nodes",
     slides: [
       templateCover(
         "From an idea to a portable presentation.",
@@ -671,8 +655,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "An editorial portfolio with a point of view, case study, exploration, system and invitation.",
     palette: ["#F7EEE7", "#2D2630", "#D45D4A", "#7A62A8"],
     font: "Georgia",
-    cover: "monolith",
-    motif: "studio",
     slides: [
       templateCover(
         "Thoughtful work. A distinct point of view.",
@@ -764,8 +746,6 @@ export const industryTemplates: readonly TemplateRecipe[] = [
       "An energetic event deck with an audience promise, program, timed agenda and access information.",
     palette: ["#FFF5E8", "#2D2350", "#7A4CCB", "#E99B37"],
     font: "Arial",
-    cover: "sunrise",
-    motif: "stage",
     slides: [
       templateCover(
         "A day for ideas that move us forward.",

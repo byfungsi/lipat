@@ -16,8 +16,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "A scholarly argument with a clear research gap, method, figure, limitations and contribution.",
     palette: ["#FFFFFF", "#172A50", "#336EA8", "#8A6B40"],
     font: "Georgia",
-    cover: "frame",
-    motif: "lens",
     slides: [
       templateCover(
         "Designing for confident collaboration.",
@@ -102,8 +100,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "A lively, readable lesson with one objective, a worked example, practice and an answer in notes.",
     palette: ["#FFF9E9", "#213B4A", "#E7A22A", "#3A8F9B"],
     font: "Arial",
-    cover: "signal",
-    motif: "spark",
     slides: [
       templateCover(
         "What makes a comparison fair?",
@@ -190,8 +186,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "An editable workshop with timeboxes, clear prompts, a qualitative prioritization grid and commitments.",
     palette: ["#F6F1FF", "#342945", "#8A58BD", "#E99645"],
     font: "Arial",
-    cover: "stripe",
-    motif: "bands",
     slides: [
       templateCover(
         "Make the next decision together.",
@@ -284,8 +278,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "A welcoming first-month guide with essentials, working principles and visible support routes.",
     palette: ["#EFF8F5", "#183E36", "#28836D", "#D8A33B"],
     font: "Arial",
-    cover: "arch",
-    motif: "path",
     slides: [
       templateCover(
         "Your first month, with a clearer path.",
@@ -383,8 +375,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "A careful evidence narrative with population, outcomes, safety, limitations and a validation plan.",
     palette: ["#F7FBFD", "#17384A", "#207E9B", "#76639C"],
     font: "Arial",
-    cover: "grid",
-    motif: "molecule",
     slides: [
       templateCover(
         "A clear question. A careful interpretation.",
@@ -472,8 +462,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "A clear community program brief connecting need, access, delivery and participation.",
     palette: ["#FFF9EF", "#263A43", "#D87537", "#2F8B8B"],
     font: "Arial",
-    cover: "sunrise",
-    motif: "community",
     slides: [
       templateCover(
         "Make the healthy choice easier to reach.",
@@ -561,8 +549,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "A measured environmental plan with a reporting boundary, emissions profile, levers and accountability.",
     palette: ["#F1F4E9", "#233D30", "#5D7C41", "#C08F3C"],
     font: "Georgia",
-    cover: "editorial",
-    motif: "contours",
     slides: [
       templateCover(
         "A smaller footprint. A more accountable plan.",
@@ -639,8 +625,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "A warm mission story with a clear distinction between activities, outcomes and responsible funding.",
     palette: ["#FFF5EC", "#49342B", "#CA704B", "#557F6C"],
     font: "Georgia",
-    cover: "split",
-    motif: "leaf",
     slides: [
       templateCover(
         "More possibility, one neighborhood at a time.",
@@ -705,8 +689,6 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       "An accessible public-information deck with a service proposal, phases, budget and consultation.",
     palette: ["#F4F6F7", "#213C58", "#2D7296", "#B98B43"],
     font: "Arial",
-    cover: "frame",
-    motif: "streets",
     slides: [
       templateCover(
         "A simpler route to local services.",
@@ -778,11 +760,9 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
     name: "Architecture Atelier",
     domain: "Architectural concept",
     description:
-      "An architectural concept narrative with schematic line art, material studies and performance priorities.",
+      "An architectural concept narrative with architectural photography, material studies and performance priorities.",
     palette: ["#F0EDE6", "#302D28", "#A56E4D", "#7B8E88"],
     font: "Georgia",
-    cover: "grid",
-    motif: "plan",
     slides: [
       templateCover(
         "A place that brings the day into balance.",
@@ -811,8 +791,8 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
       ),
       templateContent(
         "portfolio",
-        "A material language that feels calm and durable.",
-        "Original schematic artwork, not a construction drawing or borrowed project render.",
+        "A calm, tactile material palette.",
+        "Warm stone, natural wood and soft textiles bring the concept into focus.",
         [
           templateItem("Warm surfaces", "Tactile, repairable finishes."),
           templateItem(

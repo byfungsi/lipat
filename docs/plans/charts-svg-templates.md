@@ -8,7 +8,7 @@ Design research and 30 original six-slide briefs: [presentation-template-design.
 
 - Chart data belongs to the Rust/TypeScript shared model. Six category chart kinds: column, bar, line, area, pie and doughnut. Column/bar/area support stacking. Data remains editable through `setChartData`, scene lifting, previews and native DrawingML charts with embedded XLSX.
 - SVG uses image assets (`image/svg+xml`) and the existing image-source/host-loading pipeline. Static vector XML admits shapes, paths, gradients, clipping, masks and text. Scripts, events, external references, CSS sheets, images, use and animation are rejected. Scene-only renderers reparse and scope SVG IDs. PPTX contains both the SVG extension and a deterministic resvg PNG fallback with bundled OFL Lato font, no host font discovery.
-- Templates belong to an optional `/templates` entrypoint. Instantiation returns ordinary editable deck input, no WASM initialization or network. Original vector motifs plus native text/shapes/charts make decks complete offline. Follow the research's 30 stable IDs and narrative-specific six-slide sequences.
+- Templates belong to an optional `/templates` entrypoint. Instantiation returns ordinary editable deck input, no WASM initialization or network. Embedded original illustrative photography plus native text/shapes/charts make decks complete offline. Follow the research's 30 stable IDs and narrative-specific six-slide sequences.
 
 ## Verification and remaining work
 
@@ -29,3 +29,11 @@ Design research and 30 original six-slide briefs: [presentation-template-design.
 The reported Layers clipping was reproduced at 16px row height versus 31.95px required for the line and padding. Default flex shrinking compressed the rows inside the 180px scrolling panel. Disabling row shrink preserves readable rows and scrolling. The browser regression covers crowded template layers at desktop and narrow widths, bottom-row selection and keyboard selection. Changed SVG artwork and differently sized doughnut charts also keep paint/mask references isolated across scene previews.
 
 Publication was not requested for this new scope. Leave release versions unchanged unless the user requests a release.
+
+## Editorial redesign iteration
+
+The first visual review was too generic: repeated symbolic artwork, equal-weight cards and weak headline contrast. The [redesign critique and primary-source research](../research/presentation-template-redesign.md) informed six photographic cover families, shorter display headlines, open interior columns, quieter charts and two closing compositions. All 30 six-slide decks were recomposed. Fifteen original AI-generated illustrative photographs are embedded in the optional templates entrypoint; architecture, hospitality and culinary decks include complementary detail imagery. Asset provenance and prompts live in `packages/templates/assets/README.md`.
+
+The redesign retains editable text, charts and picture frames, offline rendering, stable template IDs, and the Layers scrolling fix. The first image pass was reviewed across all domains; repeated lifestyle photos and crowded caption spacing were revised after that review. Final visual captures are in `artifacts/template-redesign/`.
+
+Redesign checks: 32 template tests passed, including all 180 slides without measured overflow and PPTX round trips; TypeScript and package boundaries passed; demo/SDK builds passed; template browser editing/export flow passed at desktop and narrow widths; all 36 PPTX fixtures have zero Open XML errors; independent python-pptx verified embedded JPEGs, chart values, workbook cells and offline relationships; the packed SDK consumer passed. No device tests were run.

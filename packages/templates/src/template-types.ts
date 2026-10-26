@@ -64,18 +64,6 @@ export interface TemplateRecipe {
   readonly description: string;
   readonly palette: readonly [string, string, string, string];
   readonly font: "Arial" | "Georgia";
-  readonly cover:
-    | "orbit"
-    | "editorial"
-    | "frame"
-    | "stripe"
-    | "monolith"
-    | "arch"
-    | "grid"
-    | "signal"
-    | "split"
-    | "sunrise";
-  readonly motif: string;
   readonly slides: readonly [
     TemplateSlideRecipe,
     TemplateSlideRecipe,

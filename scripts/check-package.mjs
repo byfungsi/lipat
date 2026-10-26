@@ -40,7 +40,7 @@ if(presentationTemplates.length!==30)throw new Error('Packed template catalog is
 const template=createPresentationTemplate('revenue-pulse');if(!template.ok)throw new Error(template.error.message);
 const td=createDeck(template.value,{engine:engine.value});if(!td.ok)throw new Error(td.error.message);
 const ts=td.value.compile();if(!ts.ok)throw new Error(ts.error.message);
-const tx=engine.value.writePptx(ts.value.scene);if(!tx.ok||!engine.value.parsePptx(tx.value.bytes).ok)throw new Error('Packed chart/SVG template export failed');
+const tx=engine.value.writePptx(ts.value.scene);if(!tx.ok||!engine.value.parsePptx(tx.value.bytes).ok)throw new Error('Packed chart/photo template export failed');
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('react');throw new Error('React was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new Error('Motion was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 `,

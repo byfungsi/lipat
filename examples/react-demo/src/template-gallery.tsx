@@ -93,7 +93,7 @@ export default function TemplateGallery({
           {filtered.length === 1 ? "template" : "templates"}
         </span>
         <span>
-          Editable text, charts and vector artwork · illustrative sample content
+          Editable text and charts · AI-generated illustrative photography
         </span>
       </div>
       {error ? <p role="alert">{error}</p> : null}

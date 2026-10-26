@@ -34,7 +34,9 @@ it.each(presentationTemplates)(
       template.id,
     ).toEqual([]);
     expect(
-      compiled.scene.assets.every((a) => a.mimeType === "image/svg+xml"),
+      compiled.scene.assets.every(
+        (a) => a.mimeType === "image/jpeg" && Boolean(a.data),
+      ),
     ).toBe(true);
     expect(
       compiled.scene.slides
