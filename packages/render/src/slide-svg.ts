@@ -1,10 +1,14 @@
+import { escapeSlideMarkup } from "./markup-escape";
+export { escapeSlideMarkup } from "./markup-escape";
+import { renderChartSvg } from "./chart-svg";
+import { renderEmbeddedSvg } from "./svg-image";
 import type {
   SceneElement,
   SceneSlide,
   SlideScene,
   TextStyle,
 } from "@lipat-internal/model";
-/** Embedded-only rendering never emits remote image references; it accepts raster assets, not embedded SVG. */
+/** Embedded-only rendering never emits remote image references; SVG assets use the static vector profile. */
 export type ImageRenderPolicy = "allow-external" | "embedded-only";
 /** Rendering controls apply to static markup and playback surfaces without changing scene data. */
 export interface SlideRenderOptions {
@@ -23,16 +27,6 @@ function paintValue(
   return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
     ? value
     : fallback;
-}
-/** Escape text and attribute content before creating SVG or HTML. */
-export function escapeSlideMarkup(value: string): string {
-  return value.replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ] ?? c,
-  );
 }
 function attributes(style: TextStyle): string {
   return `font-family="${escapeSlideMarkup(style.fontFamily ?? "Arial")}" font-size="${numberValue(style.fontSize ?? 24, 24)}" fill="${paintValue(style.color, "#172033")}" font-weight="${style.bold ? "700" : "400"}" font-style="${style.italic ? "italic" : "normal"}" text-decoration="${style.underline ? "underline" : "none"}"`;
@@ -89,6 +83,9 @@ function elementSvg(
   const f = renderFrame(element.frame);
   let body = "";
   switch (element.type) {
+    case "chart":
+      body = renderChartSvg(element);
+      break;
     case "text":
       body = textSvg(element);
       break;
@@ -104,6 +101,16 @@ function elementSvg(
     }
     case "image": {
       const asset = scene.assets.find((a) => a.id === element.assetId);
+      if (asset?.mimeType === "image/svg+xml" && element.url === undefined) {
+        body = renderEmbeddedSvg(
+          asset,
+          f,
+          element.fit,
+          element.alt,
+          element.id,
+        );
+        break;
+      }
       const embedded =
         asset &&
         ["image/png", "image/jpeg", "image/gif", "image/webp"].includes(

@@ -9,7 +9,7 @@ import type {
   SlideScene,
 } from "@lipat-internal/model";
 
-/** Loaded raster bytes cross the host boundary; no URL credentials or fetch implementation enter documents. */
+/** Loaded image bytes cross the host boundary; no URL credentials or fetch implementation enter documents. */
 export interface LoadedImage {
   readonly bytes: Uint8Array;
   readonly mimeType: DeckAsset["mimeType"];
@@ -60,7 +60,7 @@ async function discardImageResponse(
   }
 }
 
-function rasterType(bytes: Uint8Array): DeckAsset["mimeType"] | undefined {
+function imageType(bytes: Uint8Array): DeckAsset["mimeType"] | undefined {
   if ([137, 80, 78, 71, 13, 10, 26, 10].every((value, i) => bytes[i] === value))
     return "image/png";
   if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255)
@@ -69,10 +69,19 @@ function rasterType(bytes: Uint8Array): DeckAsset["mimeType"] | undefined {
     String.fromCharCode(...bytes.slice(start, end));
   if (["GIF87a", "GIF89a"].includes(ascii(0, 6))) return "image/gif";
   if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "image/webp";
+  const prefix = ascii(0, Math.min(bytes.length, 512))
+    .replace(/^\u00ef\u00bb\u00bf/, "")
+    .trimStart();
+  if (
+    prefix.startsWith("<svg") ||
+    prefix.startsWith("<?xml") ||
+    prefix.startsWith("<!--")
+  )
+    return "image/svg+xml";
   return undefined;
 }
 
-/** Build a bounded raster-image loader around an explicit fetch capability; errors remain Result values. */
+/** Build a bounded image loader around an explicit fetch capability; errors remain Result values. */
 export function createImageLoader(
   fetchImage: ImageFetch,
   options: { readonly maxBytes?: number } = {},
@@ -151,11 +160,11 @@ export function createImageLoader(
               "Remote image exceeds the configured byte limit",
             );
         }
-        const mimeType = rasterType(bytes);
+        const mimeType = imageType(bytes);
         if (!mimeType)
           return failed(
             "unsupportedImage",
-            "Remote image must contain PNG, JPEG, GIF or WebP raster bytes",
+            "Remote image must contain PNG, JPEG, GIF, WebP or static SVG bytes",
           );
         return { ok: true, value: { bytes, mimeType } };
       } catch {

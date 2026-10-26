@@ -18,6 +18,8 @@ export default defineConfig({
         items: [
           { text: "Introduction", link: "/" },
           { text: "Create slides", link: "/creation" },
+          { text: "30 presentation templates", link: "/templates" },
+          { text: "Charts", link: "/charts" },
           { text: "Architecture", link: "/architecture" },
           { text: "API", link: "/api" },
           { text: "Playground", link: "/playground" },

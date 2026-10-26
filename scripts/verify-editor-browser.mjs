@@ -38,6 +38,10 @@ try {
   await page.goto("http://127.0.0.1:4184/");
   await page.locator(".lipat-canvas svg").waitFor();
   await page.evaluate(() => document.fonts.ready);
+  await page
+    .getByRole("toolbar", { name: "Presentation actions" })
+    .getByRole("button", { name: "Insert", exact: true })
+    .click();
   const palette = page.getByRole("toolbar", { name: "Insert content" }),
     stage = page.locator(".lipat-canvas");
   await palette

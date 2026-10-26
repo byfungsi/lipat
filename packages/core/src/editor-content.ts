@@ -9,6 +9,18 @@ export function createEditorNode(
 ): SlideNode {
   const base = { id, frame };
   switch (kind) {
+    case "chart":
+      return {
+        ...base,
+        type: kind,
+        chart: {
+          kind: "column",
+          categories: ["Q1", "Q2", "Q3", "Q4"],
+          series: [
+            { name: "Revenue", values: [18, 26, 33, 48], color: "#5B5BD6" },
+          ],
+        },
+      };
     case "heading":
       return { ...base, type: kind, text: "New heading" };
     case "text":

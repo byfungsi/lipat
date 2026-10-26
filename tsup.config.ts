@@ -14,6 +14,7 @@ export default defineConfig({
     "src/render.ts",
     "src/motion.ts",
     "src/images.ts",
+    "src/templates.ts",
   ],
   format: ["esm"],
   target: "es2022",
@@ -38,5 +39,9 @@ export default defineConfig({
     await copyFile("../react/src/editor.css", "dist/editor.css");
     await copyFile("../../README.md", "README.md");
     await copyFile("../../LICENSE", "LICENSE");
+    await copyFile(
+      "../../crates/lipat-pptx/fonts/OFL.txt",
+      "dist/Lato-OFL.txt",
+    );
   },
 });

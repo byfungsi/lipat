@@ -158,89 +158,6 @@ p {
   overflow: hidden;
   box-shadow: 0 8px 30px #24214405;
 }
-.lipat-editor {
-  position: relative;
-  padding-top: 54px;
-}
-.lipat-history {
-  position: absolute;
-  right: 18px;
-  top: 12px;
-  display: flex;
-  gap: 6px;
-}
-.lipat-history button {
-  font-size: 11px;
-  padding: 6px 12px;
-}
-.lipat-tabs {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 160px;
-  height: 54px;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  gap: 4px;
-  overflow: auto;
-}
-.lipat-tabs button {
-  border: 0;
-  white-space: nowrap;
-  font-size: 11px;
-  padding: 8px 12px;
-  color: #77788a;
-}
-.lipat-tabs button[aria-current="page"] {
-  background: #efedff;
-  color: #6256db;
-}
-.lipat-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
-  border-top: 1px solid #ededf3;
-  background: #eeeef4;
-  gap: 0;
-}
-.lipat-canvas {
-  margin: auto;
-  max-width: 100%;
-  box-shadow: 0 3px 24px #1e183f12;
-}
-.lipat-inspector {
-  padding: 18px;
-  background: #fbfbfd;
-  border-left: 1px solid #e8e8ef;
-  overflow: auto;
-  font-size: 12px;
-}
-.lipat-inspector p {
-  font-size: 11px;
-  overflow-wrap: anywhere;
-}
-.lipat-inspector form {
-  display: grid;
-  gap: 10px;
-}
-.lipat-inspector textarea {
-  width: 100%;
-  font-size: 12px;
-}
-.lipat-inspector > label {
-  margin-top: 28px;
-  font-size: 11px;
-}
-.lipat-diagnostics {
-  padding: 12px 22px;
-  margin: 0;
-  max-height: 65px;
-  overflow: auto;
-  font-size: 10px;
-  color: #8c879b;
-  list-style: none;
-  border-top: 1px solid #eeeef5;
-}
 .bottom-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -383,12 +300,7 @@ footer {
   main {
     padding: 28px 20px;
   }
-  .lipat-workspace {
-    grid-template-columns: 1fr;
-  }
-  .lipat-inspector {
-    display: none;
-  }
+
   .bottom-grid {
     grid-template-columns: 1fr;
   }
@@ -402,15 +314,53 @@ footer {
   .file-button {
     font-size: 11px;
   }
-  .lipat-tabs {
-    right: 130px;
-  }
-  .lipat-history {
-    right: 8px;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto;
+  }
+}
+
+/* Keep the slide workspace prominent in the authoring view. */
+.editor-page {
+  max-width: none;
+  padding: 12px 20px 20px;
+}
+.editor-page .page-heading {
+  margin-bottom: 12px;
+  align-items: center;
+}
+.editor-page .page-heading h1 {
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+.editor-page .page-heading p,
+.editor-page .page-heading .eyebrow {
+  display: none;
+}
+.editor-page .mode-tabs button {
+  padding: 6px 12px;
+}
+.editor-page .studio {
+  box-shadow: none;
+  border: 0;
+  border-radius: 12px;
+}
+.editor-page .lipat-editor {
+  height: calc(100dvh - 165px);
+  min-height: 540px;
+}
+@media (max-width: 760px) {
+  .editor-page {
+    padding: 10px 8px;
+  }
+  .editor-page .page-heading {
+    align-items: stretch;
+    gap: 10px;
+  }
+  .editor-page .lipat-editor {
+    height: auto;
+    min-height: 0;
   }
 }

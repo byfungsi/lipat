@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config";
 import { resolve } from "node:path";
 const names = [
   "model",
+  "templates",
   "browser-playback",
   "engine",
   "native",

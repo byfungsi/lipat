@@ -1,4 +1,4 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, Suspense, lazy, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createLipat, createDeck, importMarkdown } from "@byfungsi/lipat";
 import type { LipatEngine } from "@byfungsi/lipat";
@@ -12,6 +12,8 @@ import type { DeckRuntime, MarkdownImportSummary } from "@byfungsi/lipat/core";
 import wasmUrl from "@byfungsi/lipat/lipat.wasm?url";
 import { sampleDeck } from "./sample-deck";
 import { animationDeck } from "./animation-deck";
+import { chartSvgDeck } from "./chart-svg-deck";
+const TemplateGallery = lazy(() => import("./template-gallery"));
 import "./style.css";
 import "@byfungsi/lipat/editor.css";
 const motionPlayback = createMotionPlayback();
@@ -29,11 +31,14 @@ function App({
   engine,
   initial,
   initialMode = "edit",
+  initialGallery = false,
 }: {
   engine: LipatEngine;
   initial: DeckRuntime;
   initialMode?: "edit" | "present";
+  initialGallery?: boolean;
 }) {
+  const [showGallery, setShowGallery] = useState(initialGallery);
   const [deck, setDeck] = useState(initial),
     [mode, setMode] = useState<"edit" | "present" | "source">(initialMode),
     [playerSession, setPlayerSession] = useState(0),
@@ -111,6 +116,31 @@ function App({
     }
   }
 
+  if (showGallery)
+    return (
+      <Suspense
+        fallback={
+          <p className="gallery-loading" role="status">
+            Opening the template library…
+          </p>
+        }
+      >
+        <TemplateGallery
+          engine={engine}
+          onClose={() => setShowGallery(false)}
+          onUse={(id, input) => {
+            replace(input);
+            setMode("edit");
+            setShowGallery(false);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("sample");
+            url.searchParams.set("template", id);
+            window.history.replaceState(null, "", url);
+          }}
+        />
+      </Suspense>
+    );
+
   return (
     <>
       <header className="app-header">
@@ -170,7 +200,7 @@ function App({
           </button>
         </div>
       </header>
-      <main>
+      <main className={mode === "edit" ? "editor-page" : undefined}>
         {markdownSummary ? (
           <details aria-label="Markdown import summary" open>
             <summary>
@@ -219,6 +249,15 @@ function App({
                     : "Document"}
               </button>
             ))}
+            <button onClick={() => setShowGallery(true)}>Templates</button>
+            <button
+              onClick={() => {
+                replace(chartSvgDeck);
+                setMode("present");
+              }}
+            >
+              Charts &amp; SVG sample
+            </button>
             <button
               onClick={() => {
                 replace(animationDeck);
@@ -386,13 +425,30 @@ async function start() {
     const engine = createLipat(new Uint8Array(await response.arrayBuffer()));
     if (!engine.ok) throw new Error(engine.error.message);
     const sample = new URLSearchParams(window.location.search).get("sample");
-    const showSample = sample === "animations" || sample === "images";
+    const templateId = new URLSearchParams(window.location.search).get(
+      "template",
+    );
+    const template = templateId
+      ? (await import("@byfungsi/lipat/templates")).createPresentationTemplate(
+          templateId,
+        )
+      : null;
+    if (template && !template.ok) throw new Error(template.error.message);
+    const showSample =
+      sample === "animations" ||
+      sample === "images" ||
+      sample === "charts-svg" ||
+      Boolean(template);
     const deck = createDeck(
-      sample === "animations"
-        ? animationDeck
-        : sample === "images"
-          ? createImageDeck(sampleImageUrl)
-          : sampleDeck,
+      template?.ok
+        ? template.value
+        : sample === "charts-svg"
+          ? chartSvgDeck
+          : sample === "animations"
+            ? animationDeck
+            : sample === "images"
+              ? createImageDeck(sampleImageUrl)
+              : sampleDeck,
       {
         engine: engine.value,
       },
@@ -404,6 +460,7 @@ async function start() {
           engine={engine.value}
           initial={deck.value}
           initialMode={showSample ? "present" : "edit"}
+          initialGallery={sample === "templates"}
         />
       </StrictMode>,
     );

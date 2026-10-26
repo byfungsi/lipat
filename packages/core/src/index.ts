@@ -1,4 +1,5 @@
 export * from "./deck-runtime";
+export { formatChartTable, parseChartTable } from "./chart-data-editing";
 export { fromMarkdown, importMarkdown } from "./markdown-authoring";
 export type {
   MarkdownAuthoringOptions,

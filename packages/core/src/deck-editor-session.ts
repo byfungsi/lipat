@@ -315,7 +315,8 @@ class EditorSession implements DeckEditorSession {
         (input.mimeType === "image/png" ||
           input.mimeType === "image/jpeg" ||
           input.mimeType === "image/gif" ||
-          input.mimeType === "image/webp")
+          input.mimeType === "image/webp" ||
+          input.mimeType === "image/svg+xml")
       )
         resolved = {
           ok: true,
@@ -331,7 +332,7 @@ class EditorSession implements DeckEditorSession {
       else if (input.kind === "bytes")
         resolved = failure(
           "invalidImage",
-          "Editor images must be PNG, JPEG, GIF or WebP",
+          "Editor images must be PNG, JPEG, GIF, WebP or static SVG",
         );
       else
         resolved = failure(

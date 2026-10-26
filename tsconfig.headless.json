@@ -14,6 +14,7 @@
     "packages/agent",
     "packages/reveal",
     "packages/engine",
-    "packages/native"
+    "packages/native",
+    "packages/templates"
   ]
 }

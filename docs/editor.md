@@ -1,6 +1,6 @@
 # Built-in editor
 
-`DeckEditor` is a reusable editing view. It includes slide management, a content palette, drag and drop, element movement/resizing, layers, properties, rich text, tables, image insertion, notes, themes, animation settings, diagnostics and undo/redo. The individual canvas, tabs, inspector and history controls remain composable.
+`DeckEditor` is a reusable editing view. It includes slide management, a content palette, drag and drop, element movement/resizing, layers, properties, rich text, tables, image insertion, notes, themes, animation settings, diagnostics and undo/redo. The workspace uses live slide thumbnails on the left, a canvas fitted to the available space, a contextual inspector on the right, and speaker notes below. The individual canvas, tabs, inspector and history controls remain composable.
 
 ```tsx
 import { DeckEditor } from "@byfungsi/lipat/react";
@@ -22,6 +22,16 @@ const playback = createMotionPlayback();
 ```
 
 The optional stylesheet is scoped to `.lipat-editor`; importing the JavaScript never imports global CSS. Supply `className` to integrate your own styling. Create the deck once, outside render or in a lazy state initializer. The editor does not dispose the host's runtime.
+
+## Workspace navigation
+
+Select a thumbnail to switch slides; arrow keys, Home and End also navigate the filmstrip. Drag thumbnails to reorder slides. Thumbnails use the same renderer as the canvas and update after edits, including text and chart changes. Hidden slides stay visible in the editor and are labeled.
+
+The compact toolbar keeps history, slide creation, element duplication/deletion, Save and animation preview close at hand. **Insert** opens the content palette and image controls. **Slide settings** opens title, background, visibility, vertical grouping, themes, duplication and ordering. Selecting an element opens **Properties**, where layers, geometry, styling and animation settings remain available. Speaker notes stay below the canvas; diagnostics open from the bottom status bar.
+
+The optional skin fits the canvas without changing document coordinates or export dimensions. At narrow widths, the inspector moves below the slide area. Hosts can customize the editor container height through CSS. No browser-only layout APIs are required for server rendering.
+
+Composable navigation can opt into thumbnails with `<SlideTabs thumbnails />`; the default remains text navigation. A separately composed `NodeInspector` continues to include speaker notes by default, or accepts `showNotes={false}` when the host provides its own notes area.
 
 ## Save ownership
 

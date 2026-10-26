@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 const allowed = {
   model: [],
+  templates: ["model", "images"],
   "browser-playback": ["model"],
   engine: ["model"],
   native: ["engine", "model"],
@@ -16,6 +17,7 @@ const allowed = {
   "react-native": ["core", "model", "render"],
   reveal: ["model", "render"],
   lipat: [
+    "templates",
     "model",
     "engine",
     "native",

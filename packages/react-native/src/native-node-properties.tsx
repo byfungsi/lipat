@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
+import { formatChartTable, parseChartTable } from "@lipat-internal/core";
 import type { DeckRuntime } from "@lipat-internal/core";
 import { getNodeText } from "@lipat-internal/model";
 import type {
+  ChartData,
   DeckOperation,
   EntranceAnimation,
   LipatError,
@@ -78,6 +80,24 @@ export function NativeNodeProperties({
         ? node.rows.map((row) => row.join("\t")).join("\n")
         : "",
     );
+  const [chartTable, setChartTable] = useState(() =>
+    node.type === "chart" ? formatChartTable(node.chart) : "",
+  );
+  const [chartKind, setChartKind] = useState<ChartData["kind"]>(
+    node.type === "chart" ? node.chart.kind : "column",
+  );
+  const [chartTitle, setChartTitle] = useState(
+    node.type === "chart" ? (node.chart.title ?? "") : "",
+  );
+  const [chartLegend, setChartLegend] = useState(
+    node.type === "chart" ? node.chart.showLegend !== false : true,
+  );
+  const [chartValues, setChartValues] = useState(
+    node.type === "chart" ? (node.chart.showValues ?? false) : false,
+  );
+  const [chartStacked, setChartStacked] = useState(
+    node.type === "chart" ? (node.chart.stacked ?? false) : false,
+  );
   const [language, setLanguage] = useState(
     node.type === "code" ? (node.language ?? "text") : "text",
   );
@@ -105,7 +125,26 @@ export function NativeNodeProperties({
     else if (node.type === "code") updated = { ...node, style, text, language };
     else if (node.type === "list")
       updated = { ...node, style, items: text.split("\n"), ordered };
-    else if (node.type === "table")
+    else if (node.type === "chart") {
+      const parsed = parseChartTable(chartTable, node.chart);
+      if (!parsed.ok) {
+        onError(parsed.error);
+        return;
+      }
+      updated = {
+        ...node,
+        style,
+        chart: {
+          ...parsed.value,
+          kind: chartKind,
+          title: chartTitle,
+          showLegend: chartLegend,
+          showValues: chartValues,
+          stacked:
+            ["column", "bar", "area"].includes(chartKind) && chartStacked,
+        },
+      };
+    } else if (node.type === "table")
       updated = {
         ...node,
         style,
@@ -278,6 +317,50 @@ export function NativeNodeProperties({
             <NativeEditorButton
               label="Add text run"
               onPress={() => setRuns([...runs, { text: "New run" }])}
+            />
+          ) : null}
+        </>
+      ) : null}
+      {node.type === "chart" ? (
+        <>
+          <NativeEditorField
+            label="Chart title"
+            value={chartTitle}
+            onChange={setChartTitle}
+          />
+          <View>
+            {(
+              ["column", "bar", "line", "area", "pie", "doughnut"] as const
+            ).map((kind) => (
+              <NativeEditorButton
+                key={kind}
+                label={kind}
+                selected={chartKind === kind}
+                onPress={() => setChartKind(kind)}
+              />
+            ))}
+          </View>
+          <NativeEditorField
+            label="Chart data (paste a spreadsheet table)"
+            value={chartTable}
+            onChange={setChartTable}
+            multiline
+          />
+          <NativeEditorButton
+            label="Show legend"
+            selected={chartLegend}
+            onPress={() => setChartLegend(!chartLegend)}
+          />
+          <NativeEditorButton
+            label="Show values"
+            selected={chartValues}
+            onPress={() => setChartValues(!chartValues)}
+          />
+          {["column", "bar", "area"].includes(chartKind) ? (
+            <NativeEditorButton
+              label="Stack series"
+              selected={chartStacked}
+              onPress={() => setChartStacked(!chartStacked)}
             />
           ) : null}
         </>

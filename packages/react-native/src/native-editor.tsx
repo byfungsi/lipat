@@ -119,6 +119,7 @@ function NativeEditorWorkspace({
     "list",
     "shape",
     "table",
+    "chart",
     "code",
     "stack",
     "row",

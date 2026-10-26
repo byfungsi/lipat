@@ -17,7 +17,7 @@ flowchart TD
   Scene --> Export[PPTX writer: native animation timing]
   Document --> Resolve[Optional host image resolver]
   Scene --> Resolve
-  Resolve --> Assets[Embedded raster assets]
+  Resolve --> Assets[Embedded raster / static SVG assets]
   Scene --> Playback[Optional browser playback adapter]
   Playback --> Motion[Motion: SVG entrance effects]
 ```
@@ -26,7 +26,7 @@ flowchart TD
 
 `DeckDocument` is versioned JSON containing semantic nodes, stable IDs, notes, themes, assets and layout intent. `stack`, `row`, `grid` and `canvas` are ordinary containers. Presets and user-defined component functions expand to these nodes before validation; they do not require a rendering framework or executable document code.
 
-`SlideScene` contains positioned text, shape, image and table primitives. Text includes measured lines and line height. Compilation is pure and deterministic given the document and explicit font metrics. Renderers and export adapters consume scenes rather than making their own semantic layout decisions.
+`SlideScene` contains positioned text, shape, image, chart and table primitives. Text includes measured lines and line height. Compilation is pure and deterministic given the document and explicit font metrics. Renderers and export adapters consume scenes rather than making their own semantic layout decisions.
 
 Imported PPTX produces `ImportedPresentation`: a scene, warnings and a list of source part names. The parser never depends on authoring or layout. `engine.importScene` deliberately produces editable canvas nodes with imported frames; it does not infer semantic layouts. Canonical export writes supported content into a fresh package. Original parts and unsupported features are not losslessly preserved.
 
@@ -86,3 +86,11 @@ The headless editor session owns asynchronous save/image task lifetimes, cancell
 WASM and native mobile transports share one JSON/byte protocol implementation in the internal engine package. WASM owns memory-buffer allocation; the optional native add-on owns Expo/Swift/Kotlin/JNI and pointer-sized Rust ABI mechanics. Copying the WASM bridge into a mobile host was rejected because Hermes need not implement WebAssembly and 64-bit pointers cannot use its packed WASM32 ABI. Native scenes share SVG rendering/image policy, while UI and playback mechanics stay platform-specific.
 
 The optional native package carries platform binaries and autolinking metadata. The main package retains isolated model/core/web/Worker entrypoints and optional native UI peers. This split prevents iOS/Android static libraries from inflating every browser/Worker install.
+
+## Charts, SVG and templates
+
+Chart data belongs to the shared model and is carried unchanged through authoring/layout to scene consumers. The renderer owns portable chart marks; the independent PPTX adapter owns native DrawingML charts and embedded XLSX sources. Using a browser chart library as the source of truth was rejected because it would remove native editability and require another server/mobile renderer. `setChartData` remains an ordinary atomic operation.
+
+SVG is an image asset format, keeping identity, fit, alt text, host loading and offline embedding in the existing image workflow. The model owns the static XML admission profile. Scene-only renderers reparse the profile at their own resource boundary and scope IDs, because hosts can display stored scenes without initializing an engine. SVG markup is never inserted without that check. The PPTX adapter owns vector extension packaging and a resvg compatibility fallback with explicit bundled fonts, no ambient discovery.
+
+The optional template package owns catalog metadata, original narratives, compositions and SVG artwork. It expands each selection into normal editable canvas nodes; there is no template execution in serialized documents. Keeping it separate from core avoids shipping the 30-deck catalog to hosts that only parse/compile. Shared composition helpers express consistent spacing and type hierarchy, while narrative recipes choose different content roles across domains. See [templates](./templates.md) and [charts](./charts.md).

@@ -1,17 +1,20 @@
-/* Optional, scoped editor skin. Import @byfungsi/lipat/editor.css once in the host app. */
+/* Optional scoped editor skin. Import @byfungsi/lipat/editor.css once in the host. */
 .lipat-editor {
+  --lipat-line: #e0e4eb;
+  --lipat-accent: #4169df;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  height: min(820px, 88dvh);
+  min-height: 540px;
   padding: 0;
-  color: #172033;
-  background: #fff;
-  border: 1px solid #dddfe8;
-  border-radius: 14px;
+  color: #293344;
+  background: #f5f7fa;
+  border: 1px solid var(--lipat-line);
+  border-radius: 12px;
   overflow: hidden;
   font:
-    14px/1.45 system-ui,
+    13px/1.45 system-ui,
     sans-serif;
   isolation: isolate;
 }
@@ -25,32 +28,35 @@
   font: inherit;
 }
 .lipat-editor button {
-  padding: 7px 11px;
-  border: 1px solid #d9dce7;
-  border-radius: 7px;
-  background: #fff;
+  padding: 7px 10px;
+  border: 1px solid var(--lipat-line);
+  border-radius: 6px;
+  background: white;
   color: inherit;
   cursor: pointer;
   white-space: nowrap;
 }
-.lipat-editor button:hover:not(:disabled) {
-  background: #f0efff;
-  border-color: #aaa4e8;
+@media (hover: hover) and (pointer: fine) {
+  .lipat-editor button:hover:not(:disabled) {
+    background: #eef2fa;
+    border-color: #b8c5df;
+  }
 }
 .lipat-editor button:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: default;
 }
 .lipat-editor button:focus-visible,
 .lipat-editor input:focus-visible,
 .lipat-editor textarea:focus-visible,
-.lipat-editor select:focus-visible {
-  outline: 3px solid #a7a0ed;
+.lipat-editor select:focus-visible,
+.lipat-editor summary:focus-visible {
+  outline: 2px solid var(--lipat-accent);
   outline-offset: 2px;
 }
 .lipat-editor label {
   display: flex;
-  gap: 7px;
+  gap: 8px;
   align-items: center;
 }
 .lipat-editor input:not([type="checkbox"]):not([type="color"]),
@@ -58,29 +64,30 @@
 .lipat-editor textarea {
   min-width: 0;
   max-width: 100%;
-  border: 1px solid #d9dce7;
-  border-radius: 6px;
-  padding: 6px;
-  background: #fff;
+  border: 1px solid var(--lipat-line);
+  border-radius: 5px;
+  padding: 7px 8px;
+  background: white;
   color: inherit;
 }
 .lipat-editor textarea {
   resize: vertical;
-  min-height: 65px;
+  min-height: 64px;
 }
 .lipat-editor input[type="color"] {
   width: 40px;
   height: 30px;
-  padding: 2px;
-  border: 1px solid #d9dce7;
-  border-radius: 6px;
+  padding: 3px;
+  border: 1px solid var(--lipat-line);
+  border-radius: 5px;
+  background: white;
 }
 .lipat-editor fieldset {
-  border: 1px solid #e1e3ec;
+  border: 1px solid var(--lipat-line);
   border-radius: 8px;
   padding: 12px;
   display: grid;
-  gap: 9px;
+  gap: 10px;
   min-width: 0;
 }
 .lipat-editor legend {
@@ -90,106 +97,312 @@
 .lipat-editor [hidden] {
   display: none !important;
 }
-.lipat-editor .lipat-editor-toolbar,
-.lipat-editor .lipat-content-palette,
-.lipat-editor .lipat-slide-properties {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e7e8ee;
+.lipat-editor .lipat-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 .lipat-editor .lipat-editor-toolbar {
-  background: #fafaff;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 10px 14px;
+  min-height: 56px;
+  border-bottom: 1px solid var(--lipat-line);
+  background: #fff;
+  overflow-x: auto;
+}
+.lipat-editor .lipat-editor-toolbar > button {
+  flex-shrink: 0;
+  border-color: transparent;
+  background: transparent;
+}
+.lipat-editor .lipat-document-name {
+  max-width: 210px;
+  min-width: 70px;
+  margin-right: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .lipat-editor .lipat-history {
   position: static;
   display: flex;
-  gap: 6px;
+  gap: 2px;
+  border-right: 1px solid var(--lipat-line);
+  padding-right: 9px;
+  margin-right: 3px;
 }
-.lipat-editor .lipat-tabs {
-  position: static;
-  display: flex;
-  gap: 6px;
-  padding: 12px 16px;
-  height: auto;
-  overflow: auto;
-  flex-shrink: 0;
-  background: #f4f4f9;
+.lipat-editor .lipat-history button {
+  border-color: transparent;
+  background: transparent;
+  font-size: 22px;
+  line-height: 18px;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
 }
-.lipat-editor .lipat-tabs button[aria-current="page"] {
-  background: #5b5bd6;
-  color: #fff;
-  border-color: #5b5bd6;
+.lipat-editor .lipat-editor-toolbar .lipat-save {
+  margin-left: auto;
+  border-color: var(--lipat-line);
+  background: white;
 }
-.lipat-editor .lipat-content-palette {
-  font-size: 12px;
-}
-.lipat-editor .lipat-content-palette form {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
+.lipat-editor .lipat-editor-toolbar .lipat-preview-button {
+  background: #e8efff;
+  color: #2c52ba;
+  border-color: #d5e0fc;
+  padding-inline: 13px;
 }
 .lipat-editor .lipat-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 285px;
+  grid-template-columns: 184px minmax(0, 1fr) 280px;
+  flex: 1;
+  min-height: 0;
   gap: 0;
-  align-items: start;
-  background: #ececf3;
   border: 0;
+  overflow: hidden;
+}
+.lipat-editor .lipat-slide-rail {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--lipat-line);
+  background: #f8f9fc;
+}
+.lipat-editor .lipat-rail-heading {
+  padding: 14px 15px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #727f90;
+  display: flex;
+  justify-content: space-between;
+}
+.lipat-editor .lipat-filmstrip {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 5px 10px 16px;
+  overflow-y: auto;
+  min-height: 0;
+  scroll-padding-block: 12px;
+}
+.lipat-editor .lipat-filmstrip > button {
+  flex-shrink: 0;
+  text-align: left;
+  white-space: normal;
+  border: 1px solid transparent;
+  padding: 5px;
+  border-radius: 7px;
+  background: transparent;
+}
+.lipat-editor .lipat-filmstrip > button[aria-current="page"] {
+  border-color: var(--lipat-accent);
+  background: #eaf0ff;
+  box-shadow: 0 0 0 1px var(--lipat-accent);
+  color: #244dae;
+}
+.lipat-editor .lipat-slide-thumbnail {
+  display: block;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 1px 4px #23344b1a;
+  pointer-events: none;
+}
+.lipat-editor .lipat-slide-thumbnail > svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.lipat-editor .lipat-slide-caption {
+  display: block;
+  margin: 6px 2px 1px;
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.lipat-editor .lipat-slide-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: #eef1f6;
 }
 .lipat-editor .lipat-stage {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
   min-width: 0;
-  padding: 28px 20px;
-  position: sticky;
-  top: 0;
+  padding: 32px;
+  overflow: hidden;
+}
+.lipat-editor .lipat-stage-viewport {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.lipat-editor .lipat-canvas-frame {
+  max-width: 100%;
+  flex-shrink: 0;
 }
 .lipat-editor .lipat-canvas {
-  box-shadow: 0 8px 32px #1720331a;
-  margin: auto;
   background: white;
+  margin: auto;
+  box-shadow:
+    0 3px 16px #24324818,
+    0 0 0 1px #25374f18;
 }
-.lipat-editor .lipat-workspace > div:last-child {
+.lipat-editor .lipat-canvas > div > svg {
+  display: block;
+}
+.lipat-editor .lipat-notes-panel {
+  border-top: 1px solid var(--lipat-line);
+  background: #f8f9fc;
+  padding: 9px 16px 11px;
+}
+.lipat-editor .lipat-notes-panel label {
+  display: grid;
+  gap: 4px;
+  color: #7a8494;
+  font-size: 10px;
+}
+.lipat-editor .lipat-notes-panel textarea {
+  width: 100%;
+  min-height: 42px;
+  height: 42px;
+  max-height: 140px;
+  border: 0;
+  padding: 3px 0;
+  border-radius: 0;
+  background: transparent;
+  color: #4a5667;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.lipat-editor .lipat-sidebar {
   min-width: 0;
-  background: #fcfcfe;
-  border-left: 1px solid #e1e3ec;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-left: 1px solid var(--lipat-line);
+  overflow: hidden;
+}
+.lipat-editor .lipat-panel-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--lipat-line);
+  padding: 5px 8px 0;
+  gap: 2px;
+}
+.lipat-editor .lipat-panel-tabs button {
+  flex: 1;
+  padding: 10px 4px;
+  font-size: 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #7a8494;
+}
+.lipat-editor .lipat-panel-tabs button[aria-pressed="true"] {
+  border-bottom-color: var(--lipat-accent);
+  color: #315ac4;
+  font-weight: 600;
+}
+.lipat-editor .lipat-panel-content {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  padding-bottom: 16px;
+}
+.lipat-editor .lipat-panel-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7a8494;
+  margin: 15px 14px 9px;
+  letter-spacing: 0.2px;
 }
 .lipat-editor .lipat-layers {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  max-height: 180px;
-  overflow: auto;
-  padding: 12px;
+  gap: 3px;
+  max-height: 174px;
+  overflow-y: auto;
+  padding: 0 10px 10px;
 }
 .lipat-editor .lipat-layers button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
   font-size: 11px;
   text-align: left;
+  border-color: transparent;
+  min-height: 32px;
+  padding: 6px 8px;
+  overflow: hidden;
+}
+.lipat-editor .lipat-layers button > span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lipat-editor .lipat-layer-kind {
+  width: 40px;
+  flex-shrink: 0;
+  color: #8c96a5;
+  font-size: 9px;
+  text-transform: uppercase;
 }
 .lipat-editor .lipat-layers button[aria-pressed="true"] {
-  border-color: #5b5bd6;
-  background: #f0eeff;
+  border-color: #dbe5ff;
+  background: #edf2ff;
+  color: #315ac4;
 }
 .lipat-editor [aria-label="Layer order"] {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  padding: 0 12px;
+  padding: 8px 12px 12px;
+  border-bottom: 1px solid var(--lipat-line);
 }
 .lipat-editor [aria-label="Layer order"] button {
-  font-size: 11px;
-  padding: 5px 7px;
+  font-size: 10px;
+  padding: 4px 6px;
 }
 .lipat-editor .lipat-inspector {
   border: 0;
   padding: 14px;
-  overflow: auto;
-  max-height: 680px;
+  max-height: none;
+  overflow: visible;
+  background: white;
   font-size: 12px;
+}
+.lipat-editor .lipat-selection-heading {
+  text-transform: capitalize;
+  font-size: 12px;
+  font-weight: 600;
+  color: #344257;
+  margin: 0 0 15px;
 }
 .lipat-editor .lipat-inspector form {
   display: grid;
@@ -200,7 +413,7 @@
 }
 .lipat-editor .lipat-inspector input:not([type="checkbox"]):not([type="color"]),
 .lipat-editor .lipat-inspector select {
-  width: 135px;
+  width: 128px;
 }
 .lipat-editor .lipat-inspector textarea {
   width: 100%;
@@ -209,75 +422,195 @@
   align-items: stretch;
   flex-direction: column;
 }
-.lipat-editor .lipat-diagnostics {
+.lipat-editor .lipat-content-palette {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 5px 14px;
   font-size: 12px;
-  color: #69552a;
+}
+.lipat-editor .lipat-content-palette > button {
+  min-height: 42px;
+  text-align: left;
+}
+.lipat-editor .lipat-content-palette form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--lipat-line);
+  padding-top: 15px;
+  margin-top: 8px;
+}
+.lipat-editor .lipat-content-palette form input {
+  width: 100%;
+}
+.lipat-editor .lipat-slide-properties,
+.lipat-editor .lipat-slide-actions {
+  display: grid;
+  gap: 14px;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.lipat-editor .lipat-slide-properties label,
+.lipat-editor .lipat-slide-actions label {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.lipat-editor
+  .lipat-slide-properties
+  input:not([type="color"]):not([type="checkbox"]) {
+  width: 100%;
+}
+.lipat-editor .lipat-slide-actions {
+  border-top: 1px solid var(--lipat-line);
+  margin-top: 12px;
+  gap: 8px;
+}
+.lipat-editor .lipat-custom-theme {
+  padding: 12px 14px;
+  border-block: 1px solid var(--lipat-line);
+  font-size: 12px;
+}
+.lipat-editor .lipat-custom-theme summary {
+  cursor: pointer;
+}
+.lipat-editor .lipat-custom-theme form {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+.lipat-editor .lipat-custom-theme label {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.lipat-editor .lipat-custom-theme input {
+  max-width: 125px;
+}
+.lipat-editor .lipat-editor-status {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 6px 15px;
+  min-height: 30px;
+  border-top: 1px solid var(--lipat-line);
+  flex-shrink: 0;
+  background: #fafbfc;
+  font-size: 10px;
+  color: #7a8494;
+}
+.lipat-editor .lipat-editor-status > [role="status"] {
+  margin-left: auto;
+}
+.lipat-editor .lipat-editor-status details > summary {
+  cursor: pointer;
+}
+.lipat-editor .lipat-editor-status details[open] > .lipat-diagnostics {
+  position: absolute;
+  bottom: 31px;
+  right: 0;
+  width: min(480px, 100%);
+  max-height: 220px;
+  overflow: auto;
+  background: #fffdf5;
+  box-shadow: 0 -5px 20px #26374d15;
+  border: 1px solid #e6dfc9;
+}
+.lipat-editor .lipat-diagnostics {
+  font-size: 11px;
+  color: #75643d;
   margin: 0;
-  padding: 12px 30px;
+  padding: 12px 28px;
 }
 .lipat-editor [role="alert"] {
   display: flex;
   gap: 15px;
+  flex-shrink: 0;
   justify-content: space-between;
-  background: #fff2f2;
-  padding: 12px;
+  background: #fff1f0;
+  padding: 10px 15px;
   margin: 0;
 }
+.lipat-editor .lipat-animation-overlay {
+  width: 100%;
+  min-width: 0;
+  overflow: auto;
+  align-self: center;
+}
 .lipat-editor [aria-label="Animation preview"] {
-  padding: 20px;
-  background: #eeeef5;
+  padding: 0;
+  background: transparent;
 }
 .lipat-editor .lipat-player nav {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px;
 }
 .lipat-editor .lipat-player details {
   padding: 10px;
 }
-.lipat-editor .lipat-slide-properties {
-  font-size: 12px;
-}
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .lipat-editor .lipat-workspace {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 140px minmax(0, 1fr) 252px;
+  }
+  .lipat-editor .lipat-document-name {
+    display: none;
   }
   .lipat-editor .lipat-stage {
-    position: relative;
-    padding: 18px 10px;
+    padding: 20px;
   }
-  .lipat-editor .lipat-workspace > div:last-child {
+}
+@media (max-width: 760px) {
+  .lipat-editor {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .lipat-editor .lipat-editor-toolbar {
+    padding: 8px;
+  }
+  .lipat-editor .lipat-workspace {
+    grid-template-columns: 100px minmax(0, 1fr);
+    grid-template-rows: 380px auto;
+    flex: none;
+    overflow: visible;
+  }
+  .lipat-editor .lipat-slide-rail {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .lipat-editor .lipat-stage {
+    padding: 14px;
+  }
+  .lipat-editor .lipat-sidebar {
+    grid-column: 1 / -1;
     border-left: 0;
-    border-top: 1px solid #e1e3ec;
+    border-top: 1px solid var(--lipat-line);
+    max-height: 520px;
   }
-  .lipat-editor .lipat-inspector {
-    max-height: none;
+  .lipat-editor .lipat-panel-tabs {
+    justify-content: center;
   }
-  .lipat-editor .lipat-property-form {
+  .lipat-editor .lipat-panel-tabs button {
+    max-width: 140px;
+  }
+  .lipat-editor .lipat-notes-panel {
+    padding: 8px;
+  }
+  .lipat-editor .lipat-filmstrip {
+    padding-inline: 6px;
+  }
+  .lipat-editor .lipat-editor-status {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .lipat-editor .lipat-inspector .lipat-property-form {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-  .lipat-editor .lipat-tabs {
-    max-width: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .lipat-editor * {
     scroll-behavior: auto;
   }
-}
-.lipat-editor .lipat-custom-theme {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e7e8ee;
-  font-size: 12px;
-}
-.lipat-editor .lipat-custom-theme form {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding-top: 10px;
-}
-.lipat-editor .lipat-custom-theme input {
-  max-width: 130px;
 }

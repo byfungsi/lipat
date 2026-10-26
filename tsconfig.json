@@ -33,7 +33,8 @@
       "@lipat-internal/react-native": ["./packages/react-native/src/index.ts"],
       "@lipat-internal/browser-playback": [
         "./packages/browser-playback/src/index.ts"
-      ]
+      ],
+      "@lipat-internal/templates": ["./packages/templates/src/index.ts"]
     },
     "types": ["node", "vitest/globals"]
   },

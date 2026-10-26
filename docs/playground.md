@@ -21,3 +21,7 @@ PPTX downloads retain the supported native animations. Choose **Image sample**, 
 <iframe :src="withBase('/playground/index.html')" title="Lipat slide authoring playground" style="width:100%;height:820px;border:1px solid var(--vp-c-divider);border-radius:10px" />
 
 [Open the playground in its own window](./playground/index.html).
+
+## Templates, charts and SVG (0.7.0+)
+
+[Browse all 60 templates](./playground/index.html?sample=templates), preview all six slides, use a deck in the editor, or download its native PPTX. Filter by Students & learning, Research, Tech talks, Marketing & creative, Business, or Industry & impact, then search within the category. The [charts and SVG sample](./playground/index.html?sample=charts-svg) demonstrates all six chart kinds and original embedded vector artwork. Direct template links use `?template=product-horizon` (or another catalog ID).

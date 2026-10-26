@@ -40,7 +40,7 @@ Node moves use the insertion index after removing the original node. A node cann
 
 ## Scene viewers and resource policy
 
-`/react` exports `ScenePreview` and `ScenePlayer`, accepting `SlideScene` without an authoring runtime. They default to embedded raster images only; existing runtime wrappers accept the same `imagePolicy` prop. `renderSlideSvg`, `renderDeckHtml`, `renderRevealMarkup` and `updateRevealPresentation` accept `imagePolicy` options for headless hosts. See [React](./react.md).
+`/react` exports `ScenePreview` and `ScenePlayer`, accepting `SlideScene` without an authoring runtime. They default to embedded raster and static SVG images only; existing runtime wrappers accept the same `imagePolicy` prop. `renderSlideSvg`, `renderDeckHtml`, `renderRevealMarkup` and `updateRevealPresentation` accept `imagePolicy` options for headless hosts. See [React](./react.md).
 
 `ResourceLimits` and `LipatOptions` are exported from the root/model. Both engine factories apply validated, immutable host budgets. See [resource limits](./limits.md) for fields, enforcement stages and host responsibilities.
 
@@ -53,3 +53,11 @@ Node moves use the insertion index after removing the original node. A node cann
 `DeckRuntime.applyToCanvas(slideId, operations, options?)` resolves a semantic slide to canvas frames and applies the requested freeform edit in one undoable transaction. Primitive IDs and appearance are retained. `updateDocument` changes title and/or slide size; changing size does not automatically scale explicit geometry.
 
 `/react` exports `DeckEditor` and `createBrowserPlayback`. Optional `editor.css` styles the editor without global JavaScript import effects. `/react-native` exports `NativeDeckEditor`, `NativeScenePreview`, `NativeScenePlayer` and `NativeSceneSlide`. `/native` exports `createLipatFromNative(bridge, options?)`; the optional `@byfungsi/lipat-native` Expo add-on supplies `createNativeLipat(options?)` backed by Rust, with no WebAssembly requirement. See [native setup](./react-native.md).
+
+## Charts and templates (0.7.0+)
+
+Chart nodes and scene elements use `type: "chart"` with `ChartData`. `setChartData` replaces a chart's portable data atomically. `maxChartPoints` bounds cumulative category × series values. `/core` exports `formatChartTable` and `parseChartTable` for spreadsheet-paste editing. See [charts](./charts.md).
+
+`/images` exports `createSvgAsset({id, svg})`; this UTF-8/base64 helper leaves static-profile admission to the engine. See [SVG assets](./images.md#svg-image-assets).
+
+`/templates` exports `presentationTemplates`, `createPresentationTemplate(templateId, options?)`, `PresentationTemplateInfo` and `PresentationTemplateOptions`. The factory returns `LipatResult<DeckInput>` without initializing an engine. See [30 presentation templates](./templates.md).

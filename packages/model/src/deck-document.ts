@@ -68,9 +68,28 @@ export interface NodeBase {
 export type ImageSource =
   | { readonly assetId: string; readonly url?: never }
   | { readonly url: string; readonly assetId?: never };
+/** Category charts remain editable data in documents, scenes and PowerPoint; values align with categories. */
+export interface ChartSeries {
+  readonly name: string;
+  readonly values: readonly number[];
+  readonly color?: string;
+}
+/** Pie/doughnut use one nonnegative series; stacking is supported for column, bar and area. */
+export interface ChartData {
+  readonly kind: "column" | "bar" | "line" | "area" | "pie" | "doughnut";
+  readonly categories: readonly string[];
+  readonly series: readonly ChartSeries[];
+  readonly title?: string;
+  readonly showLegend?: boolean;
+  readonly showValues?: boolean;
+  readonly stacked?: boolean;
+  /** Colors cycle across pie slices, or Cartesian series without an explicit color. */
+  readonly colors?: readonly string[];
+}
 /** Containers express layout intent; only canvas children require explicit frames. */
 export type SlideNode = NodeBase &
   (
+    | { readonly type: "chart"; readonly chart: ChartData }
     | {
         readonly type: "heading";
         readonly text: TextContent;
@@ -119,7 +138,8 @@ export type SlideNode = NodeBase &
 /** Binary images are embedded as base64; optional intrinsic dimensions help layout. */
 export interface DeckAsset {
   readonly id: string;
-  readonly mimeType: "image/png" | "image/jpeg" | "image/gif" | "image/webp";
+  readonly mimeType:
+    "image/png" | "image/jpeg" | "image/gif" | "image/webp" | "image/svg+xml";
   readonly data: string;
   readonly width?: number;
   readonly height?: number;
@@ -162,6 +182,7 @@ export type SceneElement = {
   readonly step?: number;
   readonly animation?: EntranceAnimation;
 } & (
+  | { readonly type: "chart"; readonly chart: ChartData }
   | {
       readonly type: "text";
       readonly text: string;
@@ -284,6 +305,11 @@ export type ContainerLayout =
 /** Atomic serializable authoring operations form the agent tool contract. */
 export type DeckOperation =
   | {
+      readonly type: "setChartData";
+      readonly nodeId: string;
+      readonly chart: ChartData;
+    }
+  | {
       readonly type: "updateDocument";
       readonly title?: string;
       readonly size?: SlideSize;
@@ -383,6 +409,8 @@ export interface ResourceLimits {
   readonly maxSceneElements?: number;
   /** Total table cells admitted across the operation. */
   readonly maxTableCells?: number;
+  /** Cumulative chart category/series values across a document or parsed presentation. */
+  readonly maxChartPoints?: number;
   /** Cumulative layout visits, style metadata, font/asset entries, text measurement bytes and uncached image bytes; bounds work rather than elapsed time. */
   readonly maxLayoutWork?: number;
 }
@@ -474,6 +502,14 @@ export function getNodeText(node: SlideNode): string {
   if (node.type === "list") return node.items.join("\n");
   if (node.type === "table")
     return [node.columns, ...node.rows].map((r) => r.join("\t")).join("\n");
+  if (node.type === "chart")
+    return [
+      node.chart.title,
+      ...node.chart.categories,
+      ...node.chart.series.map((s) => `${s.name}: ${s.values.join(", ")}`),
+    ]
+      .filter(Boolean)
+      .join("\n");
   if ("children" in node)
     return node.children.map(getNodeText).filter(Boolean).join("\n");
   return "";
