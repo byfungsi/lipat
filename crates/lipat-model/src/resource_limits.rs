@@ -37,6 +37,8 @@ pub struct ResourceLimits {
     pub max_scene_elements: usize,
     #[schemars(range(min = 0, max = 10000000))]
     pub max_table_cells: usize,
+    #[schemars(range(min = 0, max = 100000))]
+    pub max_chart_points: usize,
     #[schemars(range(min = 0, max = 100000000))]
     pub max_layout_work: usize,
 }
@@ -58,6 +60,7 @@ impl Default for ResourceLimits {
             max_text_lines: 10000,
             max_scene_elements: 100000,
             max_table_cells: 10_000_000,
+            max_chart_points: 100_000,
             max_layout_work: 100_000_000,
         }
     }
@@ -83,6 +86,7 @@ impl ResourceLimits {
             max_text_lines,
             max_scene_elements,
             max_table_cells,
+            max_chart_points,
             max_layout_work
         );
         if self.max_request_bytes == 0 || self.max_xml_nodes == 0 {

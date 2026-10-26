@@ -34,7 +34,13 @@ const engine=createLipat(bytes); const precompiled=createLipatFromModule(new Web
 if(!engine.ok)throw new Error(engine.error.message);
 const deck=createDeck({id:'consumer',slides:[{id:'s',content:{id:'title',type:'heading',text:'Packed consumer'}}]},{engine:engine.value});
 if(!deck.ok||!deck.value.compile().ok)throw new Error('Packed runtime failed');export const runtime=deck.value;
-for(const subpath of ['model','core','pptx','wasm','render','agent','reveal','images','native'])await import('@byfungsi/lipat/'+subpath);
+for(const subpath of ['model','core','pptx','wasm','render','agent','reveal','images','native','templates'])await import('@byfungsi/lipat/'+subpath);
+const {presentationTemplates,createPresentationTemplate}=await import('@byfungsi/lipat/templates');
+if(presentationTemplates.length!==30)throw new Error('Packed template catalog is incomplete');
+const template=createPresentationTemplate('revenue-pulse');if(!template.ok)throw new Error(template.error.message);
+const td=createDeck(template.value,{engine:engine.value});if(!td.ok)throw new Error(td.error.message);
+const ts=td.value.compile();if(!ts.ok)throw new Error(ts.error.message);
+const tx=engine.value.writePptx(ts.value.scene);if(!tx.ok||!engine.value.parsePptx(tx.value.bytes).ok)throw new Error('Packed chart/SVG template export failed');
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('react');throw new Error('React was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 if(process.env.LIPAT_CHECK_NO_REACT==='1')try{await import('motion');throw new Error('Motion was installed unexpectedly')}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 `,

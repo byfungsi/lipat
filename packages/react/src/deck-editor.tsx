@@ -44,6 +44,7 @@ const palette: readonly EditorContentKind[] = [
   "list",
   "shape",
   "table",
+  "chart",
   "code",
   "stack",
   "row",
@@ -437,7 +438,7 @@ function EditorWorkspace({
             ref={fileInput}
             aria-label="Upload image file"
             type="file"
-            accept="image/png,image/jpeg,image/gif,image/webp"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
             multiple
             hidden
             onChange={handleFileChange}

@@ -4,6 +4,12 @@ An agent-friendly slide authoring engine with an independent PPTX parser and exp
 
 Inspired by [Nori](https://github.com/byfungsi/nori)'s headless model/runtime/adapters and [reveal.js](https://github.com/hakimel/reveal.js)'s declarative presentation flow. Lipat's primary source is an abstract authoring document. PPTX is a separate file adapter.
 
+## Unreleased: charts, SVG and 30 complete templates
+
+Six editable chart kinds export as native PowerPoint charts with embedded XLSX data. Static SVG assets work in preview, native scenes and PPTX, with generated PNG compatibility fallbacks. The optional `/templates` entrypoint provides 30 original, editable six-slide decks across business, research, education, health, public service and creative domains.
+
+See [charts](docs/charts.md), [SVG images](docs/images.md#svg-image-assets), [templates](docs/templates.md) and the [design research](docs/research/presentation-template-design.md). These additions follow the published 0.6.0 release and are not part of that npm version.
+
 ## Install
 
 ```sh
@@ -124,6 +130,7 @@ Five provider-neutral tools implement inspect → edit → compile → preview �
 | `/images`         | Host-controlled URL image loading and immutable offline embedding      |
 | `/pptx`           | Independent PPTX byte adapter                                          |
 | `/wasm`           | Explicit Rust engine initialization                                    |
+| `/templates`      | 30 original complete editable presentation decks and catalog metadata  |
 | `/render`         | Headless SVG and self-contained HTML output                            |
 | `/motion`         | Optional Motion browser playback adapter (install `motion` separately) |
 | `/react`          | Provider, hooks, canvas, inspector, editor, preview and player         |
@@ -137,7 +144,7 @@ ESM and TypeScript declarations are supplied. React 18.3/19 and Motion 14.6+ are
 
 Read [architecture](docs/architecture.md), [creation](docs/creation.md), [API](docs/api.md), [WASM and native usage](docs/wasm.md), [support and Nori parity](docs/support.md), [React](docs/react.md), [import/export](docs/pptx.md), and [verification](docs/verification.md).
 
-Flow layout uses deterministic font metrics. Defaults are approximate and reported as diagnostics; supply measured glyph widths for accurate wrapping. Browser font rasterization can differ from the compiler. Supported PPTX content includes ordinary text/runs, basic shapes, raster images, simple tables, notes, slide ordering and inherited placeholder geometry. Portable entrance effects and reveal steps map to both the optional [Motion browser adapter and native PPTX timing](docs/animations.md), with easing approximations reported. [Direct image URLs](docs/images.md) can be previewed, linked, or embedded for offline delivery. Charts, SmartArt, media, arbitrary timelines and lossless PPTX rewriting are outside this version. Import/export warnings make these boundaries visible.
+Flow layout uses deterministic font metrics. Defaults are approximate and reported as diagnostics; supply measured glyph widths for accurate wrapping. Browser font rasterization can differ from the compiler. Supported PPTX content includes ordinary text/runs, basic shapes, raster/static SVG images, native category charts, simple tables, notes, slide ordering and inherited placeholder geometry. Portable entrance effects and reveal steps map to both the optional [Motion browser adapter and native PPTX timing](docs/animations.md), with easing approximations reported. [Direct image URLs](docs/images.md) can be previewed, linked, or embedded for offline delivery. Unsupported chart kinds, SmartArt, media, arbitrary timelines and lossless PPTX rewriting are outside this version. Import/export warnings make these boundaries visible.
 
 ## Native Rust
 

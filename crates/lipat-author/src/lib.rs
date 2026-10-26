@@ -5,6 +5,11 @@ use serde::{Deserialize, Serialize};
 #[derive(JsonSchema, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Operation {
+    SetChartData {
+        #[serde(rename = "nodeId")]
+        node_id: String,
+        chart: ChartData,
+    },
     UpdateDocument {
         #[serde(default)]
         title: Option<String>,
@@ -203,6 +208,17 @@ pub fn apply_operations_with_limits(
     let mut next = doc.clone();
     for operation in operations {
         match operation {
+            Operation::SetChartData { node_id, chart } => {
+                match &mut find_doc_node(&mut next, node_id)?.kind {
+                    NodeKind::Chart { chart: existing } => *existing = chart.clone(),
+                    _ => {
+                        return Err(LipatError::new(
+                            "invalidOperation",
+                            "Chart data edits require a chart node",
+                        ))
+                    }
+                }
+            }
             Operation::UpdateText { node_id, text } => {
                 let n = find_doc_node(&mut next, node_id)?;
                 match &mut n.kind {

@@ -97,6 +97,20 @@ pub(crate) fn read_package_with_limits(bytes: &[u8], limits: &ResourceLimits) ->
     Ok(parts)
 }
 pub(crate) fn write_package(parts: Parts) -> Result<Vec<u8>> {
+    if parts.len() > parts.limits.max_entries {
+        return Err(resource_limit("maxEntries"));
+    }
+    let mut expanded = 0usize;
+    for bytes in parts.values() {
+        if bytes.len() > parts.limits.max_entry_bytes {
+            return Err(resource_limit("maxEntryBytes"));
+        }
+        expanded = expanded.saturating_add(bytes.len());
+        if expanded > parts.limits.max_expanded_bytes {
+            return Err(resource_limit("maxExpandedBytes"));
+        }
+    }
+    let max_bytes = parts.limits.max_pptx_bytes;
     let mut zip = ZipWriter::new(Cursor::new(Vec::new()));
     for (path, bytes) in parts.data {
         zip.start_file(
@@ -107,9 +121,14 @@ pub(crate) fn write_package(parts: Parts) -> Result<Vec<u8>> {
         zip.write_all(&bytes)
             .map_err(|_| LipatError::new("exportFailed", "Cannot write ZIP part"))?;
     }
-    zip.finish()
+    let bytes = zip
+        .finish()
         .map(|c| c.into_inner())
-        .map_err(|_| LipatError::new("exportFailed", "Cannot finish PPTX ZIP"))
+        .map_err(|_| LipatError::new("exportFailed", "Cannot finish PPTX ZIP"))?;
+    if bytes.len() > max_bytes {
+        return Err(resource_limit("maxPptxBytes"));
+    }
+    Ok(bytes)
 }
 pub(crate) fn xml_text<'a>(parts: &'a Parts, path: &str) -> Result<&'a str> {
     let bytes = parts
@@ -259,4 +278,29 @@ pub(crate) fn escape_xml(s: &str) -> String {
             _ => c.to_string(),
         })
         .collect()
+}
+
+pub(crate) fn rels(items: &[(String, String, String)]) -> String {
+    rels_with_external(items, &std::collections::BTreeSet::new())
+}
+pub(crate) fn rels_with_external(
+    items: &[(String, String, String)],
+    external: &std::collections::BTreeSet<String>,
+) -> String {
+    let entries = items
+        .iter()
+        .map(|(id, kind, target)| {
+            let mode = if external.contains(id) {
+                " TargetMode=\"External\""
+            } else {
+                ""
+            };
+            format!(
+                "<Relationship Id=\"{}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/{kind}\" Target=\"{}\"{mode}/>",
+                escape_xml(id),
+                escape_xml(target)
+            )
+        })
+        .collect::<String>();
+    format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">{entries}</Relationships>")
 }

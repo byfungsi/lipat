@@ -1,4 +1,5 @@
 use crate::animation_timing::read_slide_timing;
+use crate::chart_package::read_chart;
 use crate::package::*;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use lipat_model::*;
@@ -187,6 +188,7 @@ struct Reader {
     element_count: usize,
     asset_bytes: usize,
     table_cells: usize,
+    chart_points: usize,
 }
 impl Reader {
     fn push_element(&mut self, out: &mut Vec<SceneElement>, element: SceneElement) -> Result<()> {
@@ -216,11 +218,15 @@ impl Reader {
             "jpg" | "jpeg" => "image/jpeg",
             "gif" => "image/gif",
             "webp" => "image/webp",
+            "svg" => "image/svg+xml",
             _ => return Ok(None),
         };
         let bytes = self.parts.get(path).ok_or_else(|| {
             LipatError::new("invalidPptx", format!("Missing embedded image: {path}"))
         })?;
+        if mime == "image/svg+xml" {
+            check_svg(bytes, &self.limits)?;
+        }
         self.asset_bytes = self.asset_bytes.saturating_add(bytes.len());
         if self.asset_bytes > self.limits.max_asset_bytes {
             return Err(resource_limit("maxAssetBytes"));
@@ -370,10 +376,38 @@ impl Reader {
                         c.attribute("l").unwrap_or("0") == c.attribute("r").unwrap_or("0")
                             && c.attribute("t").unwrap_or("0") == c.attribute("b").unwrap_or("0")
                     });
-                    let rel = descendant(n, "blip")
-                        .and_then(|n| rel_attr(n, "embed").or_else(|| rel_attr(n, "link")))
+                    let svg_rel = n
+                        .descendants()
+                        .find(|n| {
+                            n.has_tag_name((
+                                "http://schemas.microsoft.com/office/drawing/2016/SVG/main",
+                                "svgBlip",
+                            ))
+                        })
+                        .and_then(|n| rel_attr(n, "embed"))
                         .and_then(|id| rels.get(id))
-                        .filter(|r| r.kind.ends_with("/image"));
+                        .filter(|r| !r.external && r.kind.ends_with("/image"));
+                    let svg_rel = if let Some(rel) = svg_rel {
+                        let bytes = self.parts.get(&rel.target).ok_or_else(|| {
+                            LipatError::new("invalidPptx", "Missing SVG image part")
+                        })?;
+                        match check_svg(bytes, &self.limits) {
+                            Ok(_) => Some(rel),
+                            Err(error) if error.reason == "resourceLimit" => return Err(error),
+                            Err(_) => {
+                                self.warn("svgRasterFallback", "SVG is outside the static vector profile; importing its raster fallback when available", slide_id, Some(id.clone()));
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    };
+                    let rel = svg_rel.or_else(|| {
+                        descendant(n, "blip")
+                            .and_then(|n| rel_attr(n, "embed").or_else(|| rel_attr(n, "link")))
+                            .and_then(|id| rels.get(id))
+                            .filter(|r| r.kind.ends_with("/image"))
+                    });
                     let source = if let Some(rel) = rel {
                         if rel.external {
                             if check_image_url(&rel.target).is_ok() {
@@ -437,7 +471,43 @@ impl Reader {
                     }
                 }
                 "graphicFrame" => {
-                    if let Some(table) = descendant(n, "tbl") {
+                    if let Some(chart_ref) = n.descendants().find(|n| {
+                        n.has_tag_name((
+                            "http://schemas.openxmlformats.org/drawingml/2006/chart",
+                            "chart",
+                        ))
+                    }) {
+                        let relationship = rel_attr(chart_ref, "id")
+                            .and_then(|id| rels.get(id))
+                            .filter(|r| !r.external && r.kind.ends_with("/chart"));
+                        let parsed = match relationship {
+                            Some(rel) => read_chart(
+                                &self.parts,
+                                &rel.target,
+                                self.limits
+                                    .max_chart_points
+                                    .saturating_sub(self.chart_points),
+                            )?,
+                            None => None,
+                        };
+                        if let Some((chart, style)) = parsed {
+                            self.chart_points += chart.categories.len() * chart.series.len();
+                            self.push_element(
+                                out,
+                                SceneElement {
+                                    id: id.clone(),
+                                    frame: f,
+                                    style,
+                                    step: None,
+                                    animation: None,
+                                    kind: SceneKind::Chart { chart },
+                                },
+                            )?;
+                            self.warn("chartFormatting", "Chart data and supported 2D kind retained; application-specific formatting, axes and labels use Lipat defaults", slide_id, Some(id));
+                        } else {
+                            self.warn("unsupportedChart", "Chart omitted: supported 2D category charts require complete cached values; 3D, combined, sparse, percent-stacked and logarithmic charts are unsupported", slide_id, Some(id));
+                        }
+                    } else if let Some(table) = descendant(n, "tbl") {
                         let mut table_rows = vec![];
                         let start_cells = self.table_cells;
                         let mut table_text_bytes = 0usize;
@@ -505,7 +575,7 @@ impl Reader {
                     } else {
                         self.warn(
                             "unsupportedGraphic",
-                            "Charts, SmartArt and embedded graphics are omitted",
+                            "SmartArt and unsupported embedded graphics are omitted",
                             slide_id,
                             Some(id),
                         );
@@ -662,6 +732,7 @@ pub fn parse_pptx_with_limits(
         element_count: 0,
         asset_bytes: 0,
         table_cells: 0,
+        chart_points: 0,
         parts,
         assets: vec![],
         asset_paths: BTreeMap::new(),

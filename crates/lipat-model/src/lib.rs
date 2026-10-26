@@ -1,10 +1,14 @@
 //! Portable authoring documents and resolved slide scenes. All distances are points.
+mod chart_data;
 mod resource_limits;
+mod svg_asset;
 use base64::{engine::general_purpose::STANDARD, Engine};
+pub use chart_data::{check_chart, ChartData, ChartKind, ChartSeries};
 pub use resource_limits::{resource_limit, ResourceLimits};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
+pub use svg_asset::check_svg;
 
 /// Expected failures cross native and WASM boundaries as serializable values.
 #[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -341,6 +345,9 @@ pub fn check_image_url(value: &str) -> Result<()> {
 #[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum NodeKind {
+    Chart {
+        chart: ChartData,
+    },
     Heading {
         text: TextContent,
         #[serde(default = "default_level")]
@@ -480,6 +487,9 @@ pub struct SceneElement {
 #[derive(JsonSchema, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum SceneKind {
+    Chart {
+        chart: ChartData,
+    },
     Text {
         text: String,
         runs: Vec<TextRun>,
@@ -638,17 +648,20 @@ pub fn check_document_with_limits(doc: &DeckDocument, limits: &ResourceLimits) -
             || !assets.insert(a.id.clone())
             || !matches!(
                 a.mime_type.as_str(),
-                "image/png" | "image/jpeg" | "image/gif" | "image/webp"
+                "image/png" | "image/jpeg" | "image/gif" | "image/webp" | "image/svg+xml"
             )
         {
             return Err(LipatError::new(
                 "invalidDocument",
-                "Invalid or duplicate raster asset",
+                "Invalid or duplicate image asset",
             ));
         }
         let bytes = STANDARD
             .decode(&a.data)
             .map_err(|_| LipatError::new("invalidDocument", "Invalid base64 image asset"))?;
+        if a.mime_type == "image/svg+xml" {
+            check_svg(&bytes, limits)?;
+        }
         asset_bytes += bytes.len();
         if asset_bytes > limits.max_asset_bytes {
             return Err(resource_limit("maxAssetBytes"));
@@ -667,7 +680,7 @@ pub fn check_document_with_limits(doc: &DeckDocument, limits: &ResourceLimits) -
     let mut slide_ids = HashSet::new();
     let mut node_ids = HashSet::new();
     let mut count = 0;
-    let mut table_cells = 0;
+    let mut budget = ContentBudget::default();
     for s in &doc.slides {
         if !id_valid(&s.id)
             || !slide_ids.insert(s.id.clone())
@@ -685,7 +698,7 @@ pub fn check_document_with_limits(doc: &DeckDocument, limits: &ResourceLimits) -
             &mut count,
             0,
             limits,
-            &mut table_cells,
+            &mut budget,
         )?;
     }
     for (index, s) in doc.slides.iter().enumerate() {
@@ -703,6 +716,11 @@ pub fn check_document_with_limits(doc: &DeckDocument, limits: &ResourceLimits) -
     }
     Ok(())
 }
+#[derive(Default)]
+struct ContentBudget {
+    table_cells: usize,
+    chart_points: usize,
+}
 fn check_node(
     n: &Node,
     assets: &HashSet<String>,
@@ -710,7 +728,7 @@ fn check_node(
     count: &mut usize,
     depth: usize,
     limits: &ResourceLimits,
-    table_cells: &mut usize,
+    budget: &mut ContentBudget,
 ) -> Result<()> {
     *count += 1;
     if depth > limits.max_depth {
@@ -775,8 +793,8 @@ fn check_node(
         NodeKind::Code { text, .. } => text.len(),
         NodeKind::Table { columns, rows } => {
             let cells = columns.len().saturating_mul(rows.len().saturating_add(1));
-            *table_cells = table_cells.saturating_add(cells);
-            if *table_cells > limits.max_table_cells {
+            budget.table_cells = budget.table_cells.saturating_add(cells);
+            if budget.table_cells > limits.max_table_cells {
                 return Err(resource_limit("maxTableCells"));
             }
             columns
@@ -791,6 +809,15 @@ fn check_node(
         return Err(resource_limit("maxTextBytes"));
     }
     match &n.kind {
+        NodeKind::Chart { chart } => {
+            check_chart(chart, limits)?;
+            budget.chart_points = budget
+                .chart_points
+                .saturating_add(chart.categories.len().saturating_mul(chart.series.len()));
+            if budget.chart_points > limits.max_chart_points {
+                return Err(resource_limit("maxChartPoints"));
+            }
+        }
         NodeKind::Heading { text, level } => {
             if !(1..=6).contains(level) {
                 return Err(LipatError::new(
@@ -868,7 +895,7 @@ fn check_node(
                     "Canvas children require explicit frames",
                 ));
             }
-            check_node(c, assets, ids, count, depth + 1, limits, table_cells)?;
+            check_node(c, assets, ids, count, depth + 1, limits, budget)?;
         }
     }
     Ok(())
@@ -1006,6 +1033,9 @@ pub fn scene_to_document(scene: &SlideScene) -> DeckDocument {
                                 step: e.step,
                                 animation: e.animation.clone(),
                                 kind: match &e.kind {
+                                    SceneKind::Chart { chart } => NodeKind::Chart {
+                                        chart: chart.clone(),
+                                    },
                                     SceneKind::Text { text, runs, .. } => NodeKind::Text {
                                         text: if runs.is_empty() {
                                             TextContent::Plain(text.clone())
@@ -1055,6 +1085,9 @@ pub fn asset_dimensions(asset: &Asset) -> Option<(f64, f64)> {
         return Some(pair);
     }
     let bytes = STANDARD.decode(&asset.data).ok()?;
+    if asset.mime_type == "image/svg+xml" {
+        return check_svg(&bytes, &ResourceLimits::default()).ok();
+    }
     let pair = if bytes.starts_with(b"\x89PNG\r\n\x1a\n") && bytes.len() >= 24 {
         (
             u32::from_be_bytes(bytes[16..20].try_into().ok()?),

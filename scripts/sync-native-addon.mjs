@@ -17,3 +17,8 @@ copyFileSync(
   resolve(root, "LICENSE"),
   resolve(root, "packages/lipat-native/LICENSE"),
 );
+
+copyFileSync(
+  resolve(root, "crates/lipat-pptx/fonts/OFL.txt"),
+  resolve(root, "packages/lipat-native/native/Lato-OFL.txt"),
+);

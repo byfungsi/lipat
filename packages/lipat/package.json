@@ -67,6 +67,10 @@
     "./react-native": {
       "types": "./dist/react-native.d.ts",
       "import": "./dist/react-native.js"
+    },
+    "./templates": {
+      "types": "./dist/templates.d.ts",
+      "import": "./dist/templates.js"
     }
   },
   "scripts": {

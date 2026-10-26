@@ -49,10 +49,17 @@ try {
       "Expected restricted runtime byte compilation: " +
         JSON.stringify(body.byteInitializer),
     );
+  if (
+    !body.scene.slides[0].elements.some(
+      (e) => e.type === "chart" && e.chart.series[0].values[1] === 24,
+    ) ||
+    !body.scene.assets.some((a) => a.mimeType === "image/svg+xml")
+  )
+    throw new Error("Worker chart/SVG PPTX round trip lost data");
   if (body.denied.ok || body.denied.error.reason !== "resourceLimit")
     throw new Error("Worker did not enforce native host policy");
   console.log(
-    "workerd: precompiled module initializes and validates/compiles/exports/imports native PPTX; dynamic WASM byte compilation is denied.",
+    "workerd: precompiled module initializes and validates/compiles/exports/imports native PPTX including charts and SVG; dynamic WASM byte compilation is denied.",
   );
 } finally {
   await mf.dispose();

@@ -198,6 +198,75 @@
         "required": ["data", "id", "mimeType"],
         "type": "object"
       },
+      "ChartData": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "colors": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "$ref": "#/definitions/ChartKind"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/definitions/ChartSeries"
+            },
+            "type": "array"
+          },
+          "showLegend": {
+            "default": true,
+            "type": "boolean"
+          },
+          "showValues": {
+            "default": false,
+            "type": "boolean"
+          },
+          "stacked": {
+            "default": false,
+            "type": "boolean"
+          },
+          "title": {
+            "default": "",
+            "type": "string"
+          }
+        },
+        "required": ["categories", "kind", "series"],
+        "type": "object"
+      },
+      "ChartKind": {
+        "enum": ["column", "bar", "line", "area", "pie", "doughnut"],
+        "type": "string"
+      },
+      "ChartSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": ["string", "null"]
+          },
+          "name": {
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["name", "values"],
+        "type": "object"
+      },
       "EntranceAnimation": {
         "additionalProperties": false,
         "description": "Portable entrance effects; milliseconds are serialized, never executable Motion props.",
@@ -265,6 +334,19 @@
       },
       "Node": {
         "oneOf": [
+          {
+            "properties": {
+              "chart": {
+                "$ref": "#/definitions/ChartData"
+              },
+              "type": {
+                "enum": ["chart"],
+                "type": "string"
+              }
+            },
+            "required": ["chart", "type"],
+            "type": "object"
+          },
           {
             "properties": {
               "level": {
@@ -787,6 +869,75 @@
         "required": ["data", "id", "mimeType"],
         "type": "object"
       },
+      "ChartData": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "colors": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "$ref": "#/definitions/ChartKind"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/definitions/ChartSeries"
+            },
+            "type": "array"
+          },
+          "showLegend": {
+            "default": true,
+            "type": "boolean"
+          },
+          "showValues": {
+            "default": false,
+            "type": "boolean"
+          },
+          "stacked": {
+            "default": false,
+            "type": "boolean"
+          },
+          "title": {
+            "default": "",
+            "type": "string"
+          }
+        },
+        "required": ["categories", "kind", "series"],
+        "type": "object"
+      },
+      "ChartKind": {
+        "enum": ["column", "bar", "line", "area", "pie", "doughnut"],
+        "type": "string"
+      },
+      "ChartSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": ["string", "null"]
+          },
+          "name": {
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["name", "values"],
+        "type": "object"
+      },
       "EntranceAnimation": {
         "additionalProperties": false,
         "description": "Portable entrance effects; milliseconds are serialized, never executable Motion props.",
@@ -941,6 +1092,19 @@
       },
       "Node": {
         "oneOf": [
+          {
+            "properties": {
+              "chart": {
+                "$ref": "#/definitions/ChartData"
+              },
+              "type": {
+                "enum": ["chart"],
+                "type": "string"
+              }
+            },
+            "required": ["chart", "type"],
+            "type": "object"
+          },
           {
             "properties": {
               "level": {
@@ -1375,6 +1539,22 @@
     "oneOf": [
       {
         "properties": {
+          "chart": {
+            "$ref": "#/definitions/ChartData"
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "type": {
+            "enum": ["setChartData"],
+            "type": "string"
+          }
+        },
+        "required": ["chart", "nodeId", "type"],
+        "type": "object"
+      },
+      {
+        "properties": {
           "size": {
             "anyOf": [
               {
@@ -1727,6 +1907,13 @@
         "default": 67108864,
         "format": "uint",
         "maximum": 67108864.0,
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "maxChartPoints": {
+        "default": 100000,
+        "format": "uint",
+        "maximum": 100000.0,
         "minimum": 0.0,
         "type": "integer"
       },

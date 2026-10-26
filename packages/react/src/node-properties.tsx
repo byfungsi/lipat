@@ -1,8 +1,10 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { formatChartTable, parseChartTable } from "@lipat-internal/core";
 import { findSlideNode } from "@lipat-internal/core";
 import { getNodeText } from "@lipat-internal/model";
 import type {
+  ChartData,
   DeckOperation,
   ElementFrame,
   EntranceAnimation,
@@ -83,6 +85,24 @@ function PropertyForm({
     [gridColumns, setGridColumns] = useState(
       node.type === "grid" ? node.columns : 2,
     );
+  const [chartTable, setChartTable] = useState(() =>
+    node.type === "chart" ? formatChartTable(node.chart) : "",
+  );
+  const [chartKind, setChartKind] = useState<ChartData["kind"]>(
+    node.type === "chart" ? node.chart.kind : "column",
+  );
+  const [chartTitle, setChartTitle] = useState(
+    node.type === "chart" ? (node.chart.title ?? "") : "",
+  );
+  const [chartLegend, setChartLegend] = useState(
+    node.type === "chart" ? node.chart.showLegend !== false : true,
+  );
+  const [chartValues, setChartValues] = useState(
+    node.type === "chart" ? (node.chart.showValues ?? false) : false,
+  );
+  const [chartStacked, setChartStacked] = useState(
+    node.type === "chart" ? (node.chart.stacked ?? false) : false,
+  );
   const [language, setLanguage] = useState(
     node.type === "code" ? (node.language ?? "text") : "text",
   );
@@ -108,7 +128,26 @@ function PropertyForm({
           updated = { ...node, style, text, language };
         else if (node.type === "list")
           updated = { ...node, style, items: text.split("\n"), ordered };
-        else if (node.type === "table")
+        else if (node.type === "chart") {
+          const parsed = parseChartTable(chartTable, node.chart);
+          if (!parsed.ok) {
+            onError?.(parsed.error);
+            return;
+          }
+          updated = {
+            ...node,
+            style,
+            chart: {
+              ...parsed.value,
+              kind: chartKind,
+              title: chartTitle,
+              showLegend: chartLegend,
+              showValues: chartValues,
+              stacked:
+                ["column", "bar", "area"].includes(chartKind) && chartStacked,
+            },
+          };
+        } else if (node.type === "table")
           updated = {
             ...node,
             style,
@@ -384,6 +423,80 @@ function PropertyForm({
             onChange={(event) => setLanguage(event.target.value)}
           />
         </label>
+      ) : null}
+      {node.type === "chart" ? (
+        <fieldset>
+          <legend>Chart</legend>
+          <label>
+            Chart title
+            <input
+              value={chartTitle}
+              onChange={(event) => setChartTitle(event.target.value)}
+            />
+          </label>
+          <label>
+            Chart kind
+            <select
+              value={chartKind}
+              onChange={(event) =>
+                setChartKind(
+                  choice(
+                    ["column", "bar", "line", "area", "pie", "doughnut"],
+                    event.target.value,
+                    "column",
+                  ),
+                )
+              }
+            >
+              {["column", "bar", "line", "area", "pie", "doughnut"].map(
+                (kind) => (
+                  <option key={kind} value={kind}>
+                    {kind}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+          <label>
+            Chart data
+            <textarea
+              aria-label="Chart data"
+              rows={8}
+              value={chartTable}
+              onChange={(event) => setChartTable(event.target.value)}
+            />
+          </label>
+          <p>
+            Paste a table from a spreadsheet. The first row names the series;
+            the first column names each category.
+          </p>
+          <label>
+            <input
+              type="checkbox"
+              checked={chartLegend}
+              onChange={(event) => setChartLegend(event.target.checked)}
+            />
+            Show legend
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={chartValues}
+              onChange={(event) => setChartValues(event.target.checked)}
+            />
+            Show values
+          </label>
+          {["column", "bar", "area"].includes(chartKind) ? (
+            <label>
+              <input
+                type="checkbox"
+                checked={chartStacked}
+                onChange={(event) => setChartStacked(event.target.checked)}
+              />
+              Stack series
+            </label>
+          ) : null}
+        </fieldset>
       ) : null}
       {node.type === "table" ? (
         <>

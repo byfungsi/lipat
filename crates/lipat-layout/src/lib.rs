@@ -278,6 +278,7 @@ impl Compiler<'_> {
                 height
             }
             NodeKind::Shape { .. } => 120.,
+            NodeKind::Chart { .. } => width * 0.5625,
         })
     }
     fn place(
@@ -428,6 +429,9 @@ impl Compiler<'_> {
                     return Err(resource_limit("maxSceneElements"));
                 }
                 let kind = match &n.kind {
+                    NodeKind::Chart { chart } => SceneKind::Chart {
+                        chart: chart.clone(),
+                    },
                     NodeKind::Heading { text, .. } | NodeKind::Text { text } => {
                         let plain = text.text();
                         let (lines, height, width) =

@@ -13,11 +13,11 @@
     "test": "npm run build:wasm && vitest run",
     "verify": "npm run check:boundaries && npm run typecheck && npm test && cargo test --workspace && npm run build && node scripts/check-package.mjs && npm run verify:workerd && npm run verify:native && npm run docs:compile",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "dev": "npm run build:wasm && npm run build -w @byfungsi/lipat && npm run dev -w @lipat/demo",
+    "dev": "npm run build:wasm && npm run build -w @byfungsi/lipat && npm run templates:build && npm run dev -w @lipat/demo",
     "docs:dev": "npm run build && node scripts/generate-docs.mjs && vitepress docs --host 127.0.0.1",
     "docs:build": "npm run build && npm run docs:compile",
     "format": "prettier --write packages examples scripts tests docs *.json *.ts *.md",
-    "verify:browser": "node scripts/verify-browser.mjs && node scripts/verify-scene-browser.mjs && node scripts/verify-editor-browser.mjs",
+    "verify:browser": "node scripts/verify-browser.mjs && node scripts/verify-scene-browser.mjs && node scripts/verify-editor-browser.mjs && node scripts/verify-templates-browser.mjs",
     "schemas:generate": "node scripts/generate-schemas.mjs",
     "verify:interop": "node scripts/verify-interop.mjs",
     "docs:compile": "node scripts/generate-docs.mjs && vitepress build docs",
@@ -27,7 +27,9 @@
     "verify:workerd": "node scripts/verify-workerd.mjs",
     "verify:native": "node scripts/verify-native.mjs",
     "build:native:ios": "node scripts/build-native-ios.mjs",
-    "build:native:android": "node scripts/build-native-android.mjs"
+    "build:native:android": "node scripts/build-native-android.mjs",
+    "templates:build": "node scripts/generate-template-assets.mjs",
+    "verify:templates": "node scripts/verify-template-interop.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261025.1",

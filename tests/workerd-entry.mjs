@@ -1,5 +1,6 @@
 import module from "./lipat.wasm";
 import { createLipatFromModule, createLipat } from "@byfungsi/lipat";
+import { createSvgAsset } from "@byfungsi/lipat/images";
 import { decodeAssetBytes } from "@byfungsi/lipat/model";
 export default {
   async fetch() {
@@ -16,14 +17,43 @@ export default {
     const engine = initialized.value;
     const document = engine.parseDocument({
       id: "worker",
+      assets: [
+        createSvgAsset({
+          id: "mark",
+          svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40"><rect width="80" height="40" rx="8" fill="#5856D6"/></svg>',
+        }),
+      ],
       slides: [
         {
           id: "s",
           content: {
-            id: "heading",
-            type: "heading",
-            text: "Precompiled Worker WASM",
-            animation: { effect: "fade" },
+            id: "canvas",
+            type: "canvas",
+            children: [
+              {
+                id: "heading",
+                type: "heading",
+                text: "Precompiled Worker WASM",
+                animation: { effect: "fade" },
+                frame: { x: 30, y: 30, width: 880, height: 80 },
+              },
+              {
+                id: "chart",
+                type: "chart",
+                chart: {
+                  kind: "column",
+                  categories: ["A", "B"],
+                  series: [{ name: "Sample", values: [12, 24] }],
+                },
+                frame: { x: 30, y: 130, width: 700, height: 350 },
+              },
+              {
+                id: "mark-node",
+                type: "image",
+                assetId: "mark",
+                frame: { x: 780, y: 160, width: 120, height: 60 },
+              },
+            ],
           },
         },
       ],

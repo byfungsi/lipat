@@ -1,5 +1,7 @@
 use crate::animation_timing::write_slide_timing;
+use crate::chart_package::write_chart;
 use crate::package::*;
+use crate::svg_fallback::svg_fallback;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use lipat_model::*;
 use serde::{Deserialize, Serialize};
@@ -13,30 +15,6 @@ const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 fn put(parts: &mut Parts, path: impl Into<String>, xml: String) {
     parts.insert(path.into(), xml.into_bytes());
-}
-fn rels(items: &[(String, String, String)]) -> String {
-    rels_with_external(items, &std::collections::BTreeSet::new())
-}
-fn rels_with_external(
-    items: &[(String, String, String)],
-    external: &std::collections::BTreeSet<String>,
-) -> String {
-    let entries = items
-        .iter()
-        .map(|(id, kind, target)| {
-            let mode = if external.contains(id) {
-                " TargetMode=\"External\""
-            } else {
-                ""
-            };
-            format!(
-                "<Relationship Id=\"{}\" Type=\"{R}/{kind}\" Target=\"{}\"{mode}/>",
-                escape_xml(id),
-                escape_xml(target)
-            )
-        })
-        .collect::<String>();
-    format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">{entries}</Relationships>")
 }
 fn xfrm(f: Frame, prefix: &str) -> String {
     format!("<{prefix}:xfrm rot=\"{}\"><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"{}\" cy=\"{}\"/></{prefix}:xfrm>",(f.rotation*60000.).round() as i64,(f.x*12700.).round() as i64,(f.y*12700.).round() as i64,(f.width*12700.).round() as i64,(f.height*12700.).round() as i64)
@@ -246,6 +224,7 @@ pub fn write_pptx_with_limits(
         ));
     }
     let mut parts = Parts::new();
+    parts.limits = *limits;
     let mut diagnostics = vec![];
     let mut overrides = vec![
         (
@@ -263,7 +242,24 @@ pub fn write_pptx_with_limits(
         ("/ppt/theme/theme1.xml".into(), "theme+xml".into()),
     ];
     let mut media = std::collections::BTreeMap::new();
+    let mut svg_media = std::collections::BTreeMap::new();
     for (i, asset) in scene.assets.iter().enumerate() {
+        if asset.mime_type == "image/svg+xml" {
+            let bytes = STANDARD
+                .decode(&asset.data)
+                .map_err(|_| LipatError::new("invalidSvg", "Invalid base64 SVG asset"))?;
+            let svg_path = format!("media/image{}.svg", i + 1);
+            let png_path = format!("media/image{}-fallback.png", i + 1);
+            parts.insert(format!("ppt/{svg_path}"), bytes.clone());
+            parts.insert(format!("ppt/{png_path}"), svg_fallback(&bytes, limits)?);
+            if std::str::from_utf8(&bytes).is_ok_and(|s| s.contains("<text") || s.contains(":text"))
+            {
+                diagnostics.push(Diagnostic::warning("svgFallbackFont", "SVG vector text retains its font request; the compatibility PNG uses bundled Lato when the requested font is unavailable. Convert text to paths for exact artwork fidelity.", None, None));
+            }
+            svg_media.insert(asset.id.clone(), svg_path);
+            media.insert(asset.id.clone(), png_path);
+            continue;
+        }
         let ext = match asset.mime_type.as_str() {
             "image/jpeg" => "jpg",
             "image/gif" => "gif",
@@ -302,6 +298,14 @@ pub fn write_pptx_with_limits(
             let id = j + 2;
             let name = escape_xml(&e.id);
             match &e.kind{
+ SceneKind::Chart { chart } => {
+    let stem = format!("chart{}-{}", i+1, j+1);
+    let chart_path = write_chart(&mut parts, &stem, chart, &e.style)?;
+    overrides.push((format!("/{chart_path}"), "drawingml.chart+xml".into()));
+    let rid = format!("rIdChart{j}");
+    slide_rels.push((rid.clone(), "chart".into(), format!("../charts/{stem}.xml")));
+    elements.push_str(&format!("<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id=\"{id}\" name=\"{name}\"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>{}<a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/chart\"><c:chart xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" r:id=\"{rid}\"/></a:graphicData></a:graphic></p:graphicFrame>",xfrm(e.frame,"p")));
+ },
  SceneKind::Text{text,runs,lines,line_height}=>elements.push_str(&format!("<p:sp><p:nvSpPr><p:cNvPr id=\"{id}\" name=\"{name}\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr>{}<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap=\"none\" lIns=\"0\" rIns=\"0\" tIns=\"0\" bIns=\"0\"/><a:lstStyle/>{}</p:txBody></p:sp>",xfrm(e.frame,"a"),resolved_paragraphs(text,runs,lines,&e.style,*line_height))),
  SceneKind::Shape{geometry,fill:shape_fill,stroke}=>elements.push_str(&format!("<p:sp><p:nvSpPr><p:cNvPr id=\"{id}\" name=\"{name}\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>{}<a:prstGeom prst=\"{geometry}\"><a:avLst/></a:prstGeom>{}<a:ln>{}</a:ln></p:spPr></p:sp>",xfrm(e.frame,"a"),fill(shape_fill),fill(stroke))),
  SceneKind::Image { source, alt, fit } => {
@@ -319,11 +323,16 @@ pub fn write_pptx_with_limits(
             ("link", None)
         }
     };
+    let svg_extension = if let Some(path) = source.asset_id().and_then(|id| svg_media.get(id)) {
+        let svg_rid = format!("rIdSvg{j}");
+        slide_rels.push((svg_rid.clone(), "image".into(), format!("../{path}")));
+        format!("<a:extLst><a:ext uri=\"{{96DAC541-7B7A-43D3-8B79-37D633B846F1}}\"><asvg:svgBlip xmlns:asvg=\"http://schemas.microsoft.com/office/drawing/2016/SVG/main\" r:embed=\"{svg_rid}\"/></a:ext></a:extLst>")
+    } else { String::new() };
     let (image_frame, crop, missing_dimensions) = image_placement(e.frame, fit, asset);
     if missing_dimensions {
         diagnostics.push(Diagnostic::warning("imageFitFlattened", "Image fit cannot be reproduced without intrinsic raster dimensions", Some(s.id.clone()), Some(e.id.clone())));
     }
-    elements.push_str(&format!("<p:pic><p:nvPicPr><p:cNvPr id=\"{id}\" name=\"{name}\" descr=\"{}\"/><p:cNvPicPr><a:picLocks noChangeAspect=\"1\"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:{reference}=\"{rid}\"/>{crop}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>{}<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></p:spPr></p:pic>", escape_xml(alt), xfrm(image_frame, "a")));
+    elements.push_str(&format!("<p:pic><p:nvPicPr><p:cNvPr id=\"{id}\" name=\"{name}\" descr=\"{}\"/><p:cNvPicPr><a:picLocks noChangeAspect=\"1\"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:{reference}=\"{rid}\">{svg_extension}</a:blip>{crop}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>{}<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></p:spPr></p:pic>", escape_xml(alt), xfrm(image_frame, "a")));
  },
  SceneKind::Table{columns,rows}=>{let grid=columns.iter().map(|_|format!("<a:gridCol w=\"{}\"/>",(e.frame.width/columns.len() as f64*12700.).round() as i64)).collect::<String>();let cells=std::iter::once(columns).chain(rows).map(|r|format!("<a:tr h=\"{}\">{}</a:tr>",(e.frame.height/(rows.len()+1) as f64*12700.).round() as i64,r.iter().map(|c|format!("<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>{}</a:txBody><a:tcPr/></a:tc>",paragraphs(c,&[],&e.style))).collect::<String>())).collect::<String>();elements.push_str(&format!("<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id=\"{id}\" name=\"{name}\"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>{}<a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/table\"><a:tbl><a:tblPr firstRow=\"1\" bandRow=\"1\"/><a:tblGrid>{grid}</a:tblGrid>{cells}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>",xfrm(e.frame,"p")));}
  }
@@ -457,7 +466,7 @@ pub fn write_pptx_with_limits(
     .collect::<String>();
     let solid = "<a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill>";
     put(&mut parts,"ppt/theme/theme1.xml",format!("<a:theme xmlns:a=\"{A}\" name=\"Lipat\"><a:themeElements><a:clrScheme name=\"Lipat\">{colors}</a:clrScheme><a:fontScheme name=\"Lipat\"><a:majorFont><a:latin typeface=\"Arial\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:majorFont><a:minorFont><a:latin typeface=\"Arial\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:minorFont></a:fontScheme><a:fmtScheme name=\"Lipat\"><a:fillStyleLst>{solid}{solid}{solid}</a:fillStyleLst><a:lnStyleLst><a:ln w=\"6350\">{solid}<a:prstDash val=\"solid\"/></a:ln><a:ln w=\"12700\">{solid}<a:prstDash val=\"solid\"/></a:ln><a:ln w=\"19050\">{solid}<a:prstDash val=\"solid\"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst>{solid}{solid}{solid}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>"));
-    let defaults="<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"png\" ContentType=\"image/png\"/><Default Extension=\"jpg\" ContentType=\"image/jpeg\"/><Default Extension=\"gif\" ContentType=\"image/gif\"/><Default Extension=\"webp\" ContentType=\"image/webp\"/>";
+    let defaults="<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"png\" ContentType=\"image/png\"/><Default Extension=\"jpg\" ContentType=\"image/jpeg\"/><Default Extension=\"gif\" ContentType=\"image/gif\"/><Default Extension=\"webp\" ContentType=\"image/webp\"/><Default Extension=\"svg\" ContentType=\"image/svg+xml\"/><Default Extension=\"xlsx\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\"/>";
     put(&mut parts,"[Content_Types].xml",format!("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">{defaults}<Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>{}</Types>",overrides.iter().map(|(path,kind)|format!("<Override PartName=\"{path}\" ContentType=\"application/vnd.openxmlformats-officedocument.{kind}\"/>")).collect::<String>()));
     Ok(ExportedPresentation {
         bytes: write_package(parts)?,

@@ -37,3 +37,12 @@ for _ in range(100):
     assert denied["error"]["reason"] == "resourceLimit", denied
 assert value({"operation": "resourceLimits"})["maxDepth"] == 64
 print("Native mobile ABI: real pointer ownership, Unicode, compile, animated PPTX export/import and independent limits passed.")
+
+svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40"><rect width="80" height="40" fill="#5856D6"/></svg>'
+chart_document = value({"operation":"parseDocument","document":{"id":"native-charts","assets":[{"id":"vector","mimeType":"image/svg+xml","data":base64.b64encode(svg.encode()).decode()}],"slides":[{"id":"s","content":{"id":"body","type":"canvas","children":[{"id":"chart","type":"chart","chart":{"kind":"bar","categories":["A","B"],"series":[{"name":"Sample","values":[-12,24]}]},"frame":{"x":30,"y":30,"width":700,"height":400}},{"id":"image","type":"image","assetId":"vector","frame":{"x":780,"y":40,"width":100,"height":50}}]}}]}})
+chart_scene = value({"operation":"compile","document":chart_document})["scene"]
+chart_output = value({"operation":"writePptx","scene":chart_scene})
+chart_imported = value({"operation":"parsePptx","bytes":chart_output["bytes"]})["scene"]
+assert any(e.get("chart",{}).get("series",[{}])[0].get("values") == [-12,24] for e in chart_imported["slides"][0]["elements"])
+assert any(a["mimeType"] == "image/svg+xml" for a in chart_imported["assets"])
+print("Native mobile ABI: editable chart data, static SVG and vector/PNG-fallback PPTX round trip passed.")
