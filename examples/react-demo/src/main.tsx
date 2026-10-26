@@ -200,7 +200,7 @@ function App({
           </button>
         </div>
       </header>
-      <main>
+      <main className={mode === "edit" ? "editor-page" : undefined}>
         {markdownSummary ? (
           <details aria-label="Markdown import summary" open>
             <summary>

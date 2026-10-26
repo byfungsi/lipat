@@ -36,7 +36,7 @@ const deck=createDeck({id:'consumer',slides:[{id:'s',content:{id:'title',type:'h
 if(!deck.ok||!deck.value.compile().ok)throw new Error('Packed runtime failed');export const runtime=deck.value;
 for(const subpath of ['model','core','pptx','wasm','render','agent','reveal','images','native','templates'])await import('@byfungsi/lipat/'+subpath);
 const {presentationTemplates,createPresentationTemplate}=await import('@byfungsi/lipat/templates');
-if(presentationTemplates.length!==30)throw new Error('Packed template catalog is incomplete');
+if(presentationTemplates.length!==60)throw new Error('Packed template catalog is incomplete');
 const template=createPresentationTemplate('revenue-pulse');if(!template.ok)throw new Error(template.error.message);
 const td=createDeck(template.value,{engine:engine.value});if(!td.ok)throw new Error(td.error.message);
 const ts=td.value.compile();if(!ts.ok)throw new Error(ts.error.message);

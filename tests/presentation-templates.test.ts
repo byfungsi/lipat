@@ -3,16 +3,30 @@ import { createDeck } from "@byfungsi/lipat";
 import {
   createPresentationTemplate,
   presentationTemplates,
+  presentationTemplateCategories,
 } from "@byfungsi/lipat/templates";
 import { renderSlideSvg } from "@byfungsi/lipat/render";
 import { testEngine, unwrap } from "./engine-fixture";
 
 const engine = testEngine();
-it("provides exactly thirty named, distinct six-slide templates with useful catalog metadata", () => {
-  expect(presentationTemplates).toHaveLength(30);
-  expect(new Set(presentationTemplates.map((t) => t.id)).size).toBe(30);
-  expect(new Set(presentationTemplates.map((t) => t.domain)).size).toBe(30);
+it("provides exactly sixty named, distinct six-slide templates with useful catalog metadata", () => {
+  expect(presentationTemplates).toHaveLength(60);
+  expect(new Set(presentationTemplates.map((t) => t.id)).size).toBe(60);
+  expect(new Set(presentationTemplates.map((t) => t.domain)).size).toBe(60);
+  expect(presentationTemplateCategories).toHaveLength(6);
+  for (const category of presentationTemplateCategories) {
+    expect(
+      presentationTemplates.filter(
+        (template) => template.category === category.id,
+      ).length,
+    ).toBeGreaterThan(0);
+  }
   for (const template of presentationTemplates) {
+    expect(
+      presentationTemplateCategories.some(
+        (category) => category.id === template.category,
+      ),
+    ).toBe(true);
     expect(template.description.length).toBeGreaterThan(40);
     expect(template.slideTitles).toHaveLength(6);
     expect(new Set(template.slideTitles).size).toBe(6);

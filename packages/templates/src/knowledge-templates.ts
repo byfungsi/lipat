@@ -10,6 +10,7 @@ import {
 export const knowledgeTemplates: readonly TemplateRecipe[] = [
   {
     id: "academic-defense",
+    category: "research",
     name: "Academic Defense",
     domain: "Thesis defense",
     description:
@@ -94,6 +95,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "lesson-spark",
+    category: "education",
     name: "Lesson Spark",
     domain: "Classroom lesson",
     description:
@@ -180,6 +182,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "workshop-canvas",
+    category: "education",
     name: "Workshop Canvas",
     domain: "Team facilitation",
     description:
@@ -272,6 +275,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "onboarding-path",
+    category: "education",
     name: "Onboarding Path",
     domain: "Employee onboarding",
     description:
@@ -369,6 +373,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "clinical-evidence",
+    category: "research",
     name: "Clinical Evidence",
     domain: "Clinical study readout",
     description:
@@ -456,6 +461,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "public-health",
+    category: "industry",
     name: "Public Health",
     domain: "Community intervention",
     description:
@@ -543,6 +549,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "climate-ledger",
+    category: "industry",
     name: "Climate Ledger",
     domain: "Sustainability reporting",
     description:
@@ -619,6 +626,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "nonprofit-impact",
+    category: "industry",
     name: "Nonprofit Impact",
     domain: "Donor and impact update",
     description:
@@ -683,6 +691,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "civic-plan",
+    category: "industry",
     name: "Civic Plan",
     domain: "Public service proposal",
     description:
@@ -757,6 +766,7 @@ export const knowledgeTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "architecture-atelier",
+    category: "industry",
     name: "Architecture Atelier",
     domain: "Architectural concept",
     description:

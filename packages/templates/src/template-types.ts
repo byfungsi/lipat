@@ -1,3 +1,4 @@
+import type { PresentationTemplateCategory } from "./template-categories";
 import type { ChartData } from "@lipat-internal/model";
 
 /** Presentation template metadata is available without an engine, renderer, or network. */
@@ -5,6 +6,7 @@ export interface PresentationTemplateInfo {
   readonly id: string;
   readonly name: string;
   readonly domain: string;
+  readonly category: PresentationTemplateCategory;
   readonly description: string;
   readonly palette: readonly [string, string, string, string];
   readonly slideCount: 6;
@@ -61,6 +63,7 @@ export interface TemplateRecipe {
   readonly id: string;
   readonly name: string;
   readonly domain: string;
+  readonly category: PresentationTemplateCategory;
   readonly description: string;
   readonly palette: readonly [string, string, string, string];
   readonly font: "Arial" | "Georgia";

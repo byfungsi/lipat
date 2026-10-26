@@ -70,7 +70,8 @@ writeFileSync(
   JSON.stringify(presentationTemplates, null, 2),
 );
 writeFileSync(resolve(review, "report.json"), JSON.stringify(reports, null, 2));
-for (let page = 0; page < 6; page++) {
+const sheetCount = Math.ceil(presentationTemplates.length / 5);
+for (let page = 0; page < sheetCount; page++) {
   const cards = presentationTemplates
     .slice(page * 5, page * 5 + 5)
     .map(
@@ -80,9 +81,9 @@ for (let page = 0; page < 6; page++) {
     .join("");
   writeFileSync(
     resolve(review, `contact-${page + 1}.html`),
-    `<!doctype html><meta charset="utf-8"><title>Lipat template review ${page + 1}</title><style>body{font:12px Arial;background:#e7e8ec;color:#18202e;margin:10px auto;max-width:1260px}h1{font-size:18px;margin:0 0 12px}h2{font-size:13px;margin:8px 0}small{font-weight:400;color:#586273;margin-left:12px}.slides{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}a{display:block;color:inherit;text-decoration:none}img{display:block;width:100%;aspect-ratio:16/9;box-shadow:0 2px 5px #17203318}span{display:block;font-size:10px;height:20px;line-height:13px;margin-top:4px}section{margin-bottom:5px}</style><h1>Original Lipat templates / ${page + 1} of 6 · 30 slides per sheet</h1>${cards}`,
+    `<!doctype html><meta charset="utf-8"><title>Lipat template review ${page + 1}</title><style>body{font:12px Arial;background:#e7e8ec;color:#18202e;margin:10px auto;max-width:1260px}h1{font-size:18px;margin:0 0 12px}h2{font-size:13px;margin:8px 0}small{font-weight:400;color:#586273;margin-left:12px}.slides{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}a{display:block;color:inherit;text-decoration:none}img{display:block;width:100%;aspect-ratio:16/9;box-shadow:0 2px 5px #17203318}span{display:block;font-size:10px;height:20px;line-height:13px;margin-top:4px}section{margin-bottom:5px}</style><h1>Original Lipat templates / ${page + 1} of ${sheetCount} · 30 slides per sheet</h1>${cards}`,
   );
 }
 console.log(
-  `Generated ${presentationTemplates.length} complete template decks, 180 SVG slides, PPTX/HTML/JSON downloads and six review contact sheets.`,
+  `Generated ${presentationTemplates.length} complete template decks, ${presentationTemplates.length * 6} SVG slides, PPTX/HTML/JSON downloads and ${sheetCount} review contact sheets.`,
 );

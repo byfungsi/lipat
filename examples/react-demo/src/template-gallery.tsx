@@ -4,8 +4,12 @@ import type { DeckInput, LipatEngine, SlideScene } from "@byfungsi/lipat";
 import {
   createPresentationTemplate,
   presentationTemplates,
+  presentationTemplateCategories,
 } from "@byfungsi/lipat/templates";
-import type { PresentationTemplateInfo } from "@byfungsi/lipat/templates";
+import type {
+  PresentationTemplateInfo,
+  PresentationTemplateCategory,
+} from "@byfungsi/lipat/templates";
 import { ScenePlayer } from "@byfungsi/lipat/react";
 import "./template-gallery.css";
 
@@ -19,6 +23,9 @@ export default function TemplateGallery({
   readonly onUse: (id: string, input: DeckInput) => void;
   readonly onClose: () => void;
 }): ReactNode {
+  const [category, setCategory] = useState<
+    PresentationTemplateCategory | "all"
+  >("all");
   const [search, setSearch] = useState(""),
     [error, setError] = useState("");
   const [selected, setSelected] = useState<{
@@ -27,10 +34,12 @@ export default function TemplateGallery({
     readonly scene: SlideScene;
   } | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
-  const filtered = presentationTemplates.filter((t) =>
-    `${t.name} ${t.domain} ${t.description}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
+  const filtered = presentationTemplates.filter(
+    (t) =>
+      (category === "all" || t.category === category) &&
+      `${t.name} ${t.domain} ${t.description}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
   );
   useEffect(() => {
     if (selected) dialog.current?.showModal();
@@ -73,7 +82,7 @@ export default function TemplateGallery({
           <p className="eyebrow">A STRONGER STARTING POINT</p>
           <h1>Make room for a good story.</h1>
           <p>
-            30 original decks. Six considered slides each. Ready to make your
+            60 original decks. Six considered slides each. Ready to make your
             own.
           </p>
         </div>
@@ -83,10 +92,36 @@ export default function TemplateGallery({
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Try product, education, finance…"
+            placeholder="Try lab report, tech talk, campaign…"
           />
         </label>
       </header>
+      <nav className="gallery-categories" aria-label="Template categories">
+        <button
+          type="button"
+          aria-pressed={category === "all"}
+          onClick={() => setCategory("all")}
+        >
+          All templates <span>{presentationTemplates.length}</span>
+        </button>
+        {presentationTemplateCategories.map((group) => (
+          <button
+            type="button"
+            key={group.id}
+            aria-pressed={category === group.id}
+            onClick={() => setCategory(group.id)}
+          >
+            {group.label}{" "}
+            <span>
+              {
+                presentationTemplates.filter(
+                  (template) => template.category === group.id,
+                ).length
+              }
+            </span>
+          </button>
+        ))}
+      </nav>
       <div className="gallery-meta">
         <span>
           {filtered.length} complete{" "}
@@ -99,7 +134,11 @@ export default function TemplateGallery({
       {error ? <p role="alert">{error}</p> : null}
       <div className="template-grid">
         {filtered.map((info) => (
-          <article className="template-card" key={info.id}>
+          <article
+            className="template-card"
+            key={info.id}
+            data-category={info.category}
+          >
             <button
               className="template-cover"
               aria-label={`Preview ${info.name}`}
@@ -149,7 +188,7 @@ export default function TemplateGallery({
       </div>
       {filtered.length === 0 ? (
         <p className="gallery-empty">
-          No matches yet. Try a domain such as research, retail or strategy.
+          No matches yet. Try a different search or category.
         </p>
       ) : null}
       <footer className="gallery-footer">

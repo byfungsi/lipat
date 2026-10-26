@@ -260,3 +260,31 @@
     transition: none;
   }
 }
+
+.gallery-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 28px 0 22px;
+}
+.gallery-categories button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 100px;
+  padding: 10px 15px;
+  font-size: 13px;
+  background: transparent;
+  border: 1px solid #d7d6d2;
+  color: #585851;
+}
+.gallery-categories button[aria-pressed="true"] {
+  background: #25382d;
+  border-color: #25382d;
+  color: #fff;
+}
+.gallery-categories span {
+  font-size: 11px;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}

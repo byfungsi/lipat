@@ -1,5 +1,6 @@
 import { freezeDocument } from "@lipat-internal/model";
 import type { DeckInput, LipatResult } from "@lipat-internal/model";
+import { audienceTemplates } from "./audience-templates";
 import { businessTemplates } from "./business-templates";
 import { knowledgeTemplates } from "./knowledge-templates";
 import { industryTemplates } from "./industry-templates";
@@ -15,15 +16,17 @@ const recipes = [
   ...businessTemplates,
   ...knowledgeTemplates,
   ...industryTemplates,
+  ...audienceTemplates,
 ];
 
-/** Thirty original six-slide deck templates; catalog metadata can be listed without initializing WASM. */
+/** Sixty original six-slide deck templates; catalog metadata can be listed without initializing WASM. */
 export const presentationTemplates: readonly PresentationTemplateInfo[] =
   freezeDocument(
     recipes.map((recipe) => ({
       id: recipe.id,
       name: recipe.name,
       domain: recipe.domain,
+      category: recipe.category,
       description: recipe.description,
       palette: recipe.palette,
       slideCount: 6 as const,

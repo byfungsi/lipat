@@ -133,8 +133,10 @@ try {
     .getByRole("button", { name: "Next", exact: true })
     .click();
   if (
-    (await page.locator('.lipat-tabs [aria-current="page"]').textContent()) !==
-    "1. Meet Lipat"
+    (await page
+      .getByRole("navigation", { name: "Slides", exact: true })
+      .locator('[aria-current="page"]')
+      .getAttribute("aria-label")) !== "1. Meet Lipat"
   )
     throw new Error("Preview navigation changed editor state");
   await page.getByRole("button", { name: "Present", exact: true }).click();

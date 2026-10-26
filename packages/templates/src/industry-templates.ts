@@ -10,6 +10,7 @@ import {
 export const industryTemplates: readonly TemplateRecipe[] = [
   {
     id: "property-portfolio",
+    category: "industry",
     name: "Property Portfolio",
     domain: "Real estate opportunity",
     description:
@@ -84,6 +85,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "hospitality-journey",
+    category: "industry",
     name: "Hospitality Journey",
     domain: "Guest experience",
     description:
@@ -169,6 +171,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "culinary-story",
+    category: "industry",
     name: "Culinary Story",
     domain: "Food and restaurant concept",
     description:
@@ -239,6 +242,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "retail-season",
+    category: "industry",
     name: "Retail Season",
     domain: "Seasonal merchandising",
     description:
@@ -323,6 +327,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "supply-chain",
+    category: "industry",
     name: "Supply Chain",
     domain: "Operations resilience",
     description:
@@ -414,6 +419,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "finance-outlook",
+    category: "business",
     name: "Finance Outlook",
     domain: "Financial forecast",
     description:
@@ -497,6 +503,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "security-brief",
+    category: "technology",
     name: "Security Brief",
     domain: "Security risk update",
     description:
@@ -588,6 +595,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "developer-keynote",
+    category: "technology",
     name: "Developer Keynote",
     domain: "Technical product talk",
     description:
@@ -649,6 +657,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "creative-portfolio",
+    category: "marketing",
     name: "Creative Portfolio",
     domain: "Design portfolio",
     description:
@@ -740,6 +749,7 @@ export const industryTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "event-program",
+    category: "marketing",
     name: "Event Program",
     domain: "Conference and community event",
     description:

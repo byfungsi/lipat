@@ -2,6 +2,10 @@ import { spawn } from "node:child_process";
 import { readFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import {
+  presentationTemplates,
+  presentationTemplateCategories,
+} from "../packages/lipat/dist/templates.js";
 import { createLipat } from "../packages/lipat/dist/index.js";
 
 const server = spawn(
@@ -78,8 +82,67 @@ try {
   await page
     .getByRole("heading", { name: "Make room for a good story." })
     .waitFor();
-  if ((await page.locator(".template-card").count()) !== 30)
+  if ((await page.locator(".template-card").count()) !== 60)
     throw Error("Template gallery is incomplete");
+  const categories = page.getByRole("navigation", {
+    name: "Template categories",
+  });
+  for (const category of presentationTemplateCategories) {
+    await categories
+      .getByRole("button", {
+        name: new RegExp(
+          `^${category.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+        ),
+      })
+      .click();
+    const cards = page.locator(".template-card");
+    const expected = presentationTemplates.filter(
+      (template) => template.category === category.id,
+    ).length;
+    if (
+      (await cards.count()) !== expected ||
+      (await cards
+        .filter({
+          has: page.locator(
+            `[data-category]:not([data-category="${category.id}"])`,
+          ),
+        })
+        .count())
+    )
+      throw Error(`Category filter failed: ${category.id}`);
+    if (
+      !(await cards.evaluateAll(
+        (nodes, id) =>
+          nodes.every((node) => node.getAttribute("data-category") === id),
+        category.id,
+      ))
+    )
+      throw Error("Category contains unrelated templates");
+  }
+  await categories.getByRole("button", { name: /^Tech talks/ }).click();
+  await page.getByRole("searchbox").fill("lightning");
+  if ((await page.locator(".template-card").count()) !== 1)
+    throw Error("Category and search do not combine");
+  await page
+    .getByRole("button", { name: "Preview Tech Lightning", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Next", exact: true })
+    .click();
+  if (
+    !(
+      await page
+        .getByRole("dialog")
+        .locator("svg[role=img]")
+        .getAttribute("aria-label")
+    )?.includes("retry")
+  )
+    throw Error("New tech template preview did not navigate");
+  await page
+    .getByRole("button", { name: "Close template preview", exact: true })
+    .click();
+  await categories.getByRole("button", { name: /^All templates/ }).click();
   await page.getByRole("searchbox").fill("revenue");
   if ((await page.locator(".template-card").count()) !== 1)
     throw Error("Template search failed");
@@ -102,6 +165,52 @@ try {
   await page.locator(".lipat-canvas svg[role=img]").waitFor();
   if (!page.url().includes("template=revenue-pulse"))
     throw Error("Using a template did not select its source");
+  const thumbnails = page.getByRole("navigation", {
+    name: "Slides",
+    exact: true,
+  });
+  if ((await thumbnails.locator(".lipat-slide-thumbnail svg").count()) !== 6)
+    throw Error("Filmstrip is missing rendered previews");
+  await thumbnails.getByRole("button").nth(1).click();
+  await thumbnails.getByRole("button").nth(1).press("ArrowDown");
+  if (
+    (await thumbnails
+      .getByRole("button")
+      .nth(2)
+      .getAttribute("aria-current")) !== "page"
+  )
+    throw Error("Filmstrip keyboard navigation failed");
+  await thumbnails.getByRole("button").first().click();
+  const layout = await page.locator(".lipat-workspace").evaluate((root) => {
+    const rail = root
+      .querySelector(".lipat-slide-rail")
+      .getBoundingClientRect();
+    const canvas = root.querySelector(".lipat-canvas").getBoundingClientRect();
+    const stage = root.querySelector(".lipat-stage").getBoundingClientRect();
+    const sidebar = root
+      .querySelector(".lipat-sidebar")
+      .getBoundingClientRect();
+    const notes = root
+      .querySelector(".lipat-notes-panel")
+      .getBoundingClientRect();
+    return {
+      fits:
+        canvas.x >= rail.right &&
+        canvas.right <= sidebar.x &&
+        canvas.y >= stage.y &&
+        canvas.bottom <= stage.bottom + 1 &&
+        notes.y >= canvas.bottom,
+      width: canvas.width,
+      height: canvas.height,
+    };
+  });
+  if (!layout.fits || layout.width < 400 || layout.height < 200)
+    throw Error(`Editor does not fit the slide: ${JSON.stringify(layout)}`);
+  mkdirSync("artifacts/editor-60", { recursive: true });
+  await page.screenshot({
+    path: "artifacts/editor-60/desktop.png",
+    fullPage: false,
+  });
   await verifyLayerRows(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await verifyLayerRows(page);
@@ -162,7 +271,7 @@ try {
     throw Error("SVG asset missing from chart sample");
   if (errors.length) throw Error(errors.join("\n"));
   console.log(
-    "Browser: 30-template gallery search, six-slide preview, template source/agent edit, spreadsheet chart controls, native PPTX download and animated chart/SVG Next navigation passed.",
+    "Browser: 60-template categories/search, new tech preview, fitted canvas/filmstrip keyboard navigation, gallery search, six-slide preview, template source/agent edit, spreadsheet chart controls, native PPTX download and animated chart/SVG Next navigation passed.",
   );
 } finally {
   await browser?.close();

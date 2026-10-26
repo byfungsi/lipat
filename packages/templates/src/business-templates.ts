@@ -10,6 +10,7 @@ import {
 export const businessTemplates: readonly TemplateRecipe[] = [
   {
     id: "venture-signal",
+    category: "business",
     name: "Venture Signal",
     domain: "Startup pitch",
     description:
@@ -80,6 +81,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "boardroom-brief",
+    category: "business",
     name: "Boardroom Brief",
     domain: "Board decision",
     description:
@@ -168,6 +170,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "revenue-pulse",
+    category: "business",
     name: "Revenue Pulse",
     domain: "Quarterly business review",
     description:
@@ -243,6 +246,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "product-horizon",
+    category: "business",
     name: "Product Horizon",
     domain: "Product roadmap",
     description:
@@ -325,6 +329,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "launch-studio",
+    category: "marketing",
     name: "Launch Studio",
     domain: "Product launch",
     description:
@@ -397,6 +402,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "strategy-compass",
+    category: "business",
     name: "Strategy Compass",
     domain: "Annual strategy",
     description:
@@ -486,6 +492,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "client-proposal",
+    category: "business",
     name: "Client Proposal",
     domain: "Professional services",
     description:
@@ -572,6 +579,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "campaign-spectrum",
+    category: "marketing",
     name: "Campaign Spectrum",
     domain: "Marketing campaign",
     description:
@@ -651,6 +659,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "brand-manifesto",
+    category: "marketing",
     name: "Brand Manifesto",
     domain: "Brand system",
     description:
@@ -715,6 +724,7 @@ export const businessTemplates: readonly TemplateRecipe[] = [
   },
   {
     id: "research-lens",
+    category: "research",
     name: "Research Lens",
     domain: "Customer research",
     description:

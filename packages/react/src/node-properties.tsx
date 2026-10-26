@@ -807,8 +807,10 @@ function PropertyForm({
 /** Full node properties use atomic document operations, including animation, rich runs, table data, layout and geometry. */
 export function NodeInspector({
   onError,
+  showNotes = true,
 }: {
   readonly onError?: (error: LipatError) => void;
+  readonly showNotes?: boolean;
 }): ReactNode {
   const state = useDeckState(),
     deck = useDeck(),
@@ -828,8 +830,8 @@ export function NodeInspector({
     <aside className="lipat-inspector" aria-label="Element inspector">
       {node ? (
         <>
-          <p>
-            {node.id} · {node.type}
+          <p className="lipat-selection-heading" title={node.id}>
+            {node.type} properties
           </p>
           {readOnly ? (
             <p>{getNodeText(node)}</p>
@@ -848,6 +850,28 @@ export function NodeInspector({
       ) : (
         <p>Select an element to edit it.</p>
       )}
+      {showNotes ? (
+        <SlideSpeakerNotes {...(onError ? { onError } : {})} />
+      ) : null}
+    </aside>
+  );
+}
+
+/** Speaker notes can live below the canvas independently of the element inspector. */
+export function SlideSpeakerNotes({
+  onError,
+}: {
+  readonly onError?: (error: LipatError) => void;
+}): ReactNode {
+  const state = useDeckState(),
+    deck = useDeck(),
+    readOnly = useDeckReadOnly();
+  const slide = state.document.slides.find(
+    (item) => item.id === state.activeSlideId,
+  );
+  return (
+    <>
+      {" "}
       {slide ? (
         <label>
           Speaker notes
@@ -868,6 +892,6 @@ export function NodeInspector({
           />
         </label>
       ) : null}
-    </aside>
+    </>
   );
 }

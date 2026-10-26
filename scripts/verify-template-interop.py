@@ -9,7 +9,7 @@ from pptx import Presentation
 
 root = Path('examples/react-demo/public/templates')
 catalog = json.loads((root / 'catalog.json').read_text())
-assert len(catalog) == 30
+assert len(catalog) == 60
 reports = []
 for info in catalog:
     folder = root / info['id']
@@ -43,7 +43,7 @@ for info in catalog:
                 assert 'TargetMode="External"' not in package.read(name).decode(), (info['id'],name)
     reports.append({'id':info['id'],'slides':6,'charts':len(charts),'photographs':len(photographs)})
 Path('artifacts/template-review/interop.json').write_text(json.dumps(reports,indent=2))
-print('Independent python-pptx: 30 decks / 180 slides, chart values/categories, XLSX cells, embedded photograph pixels and offline relationships passed.')
+print('Independent python-pptx: 60 decks / 360 slides, chart values/categories, XLSX cells, embedded photograph pixels and offline relationships passed.')
 
 # Templates now use photography; keep independent SVG fallback checks on the
 # dedicated chart/vector fixtures instead of silently losing that coverage.

@@ -1,6 +1,6 @@
 # Charts, SVG and presentation templates
 
-Requested scope: editable charts, SVG support and 30 beautiful ready-to-use presentation templates spanning different use cases and domains. The user requested online design research. Do not reduce this to themes or individual slide presets.
+Requested scope: editable charts, SVG support and 60 beautiful ready-to-use presentation templates spanning different use cases and domains, grouped by audience, plus a slide editor with visual navigation and a fitted workspace. The user requested online design research. Do not reduce this to themes or individual slide presets. The original 30-template delivery and its verification are recorded below; the latest expansion adds 30 complete decks.
 
 Design research and 30 original six-slide briefs: [presentation-template-design.md](../research/presentation-template-design.md).
 
@@ -37,3 +37,13 @@ The first visual review was too generic: repeated symbolic artwork, equal-weight
 The redesign retains editable text, charts and picture frames, offline rendering, stable template IDs, and the Layers scrolling fix. The first image pass was reviewed across all domains; repeated lifestyle photos and crowded caption spacing were revised after that review. Final visual captures are in `artifacts/template-redesign/`.
 
 Redesign checks: 32 template tests passed, including all 180 slides without measured overflow and PPTX round trips; TypeScript and package boundaries passed; demo/SDK builds passed; template browser editing/export flow passed at desktop and narrow widths; all 36 PPTX fixtures have zero Open XML errors; independent python-pptx verified embedded JPEGs, chart values, workbook cells and offline relationships; the packed SDK consumer passed. No device tests were run.
+
+## Audience expansion and editor workspace
+
+The catalog now has 60 complete six-slide decks (360 slides). Thirty new narratives cover student projects, humanities seminars, lab reports, capstones, scholarships, research proposals, methods, conference papers, replication, technical talks, demos, workshops, positioning and marketing campaigns. They reuse the embedded original photography and editable slide components. Stable category metadata is exported through `/templates`; gallery category filters combine with text search.
+
+The six groups are Students & learning (11), Research (11), Tech talks (10), Marketing & creative (11), Business (7), and Industry & impact (10). All previous template IDs remain available.
+
+The built-in editor now uses live slide thumbnails on the left, a compact toolbar, a canvas fitted to the available workspace, contextual controls on the right, and speaker notes below. Insert and slide settings have dedicated panels. Keyboard slide navigation and drag reordering remain available; text changes update the thumbnails. The composable `SlideTabs` keeps its default text mode, with an optional `thumbnails` prop.
+
+Verification: 175 JavaScript tests passed, including all 60 template round trips and editor navigation/notes/live-thumbnail coverage. All four browser suites passed, including category/search filtering, fitted-canvas bounds, crowded layers at desktop and narrow widths, chart edits, image insertion, undo, animation preview and PPTX export. All 66 PPTX fixtures have zero Open XML validation errors; independent python-pptx checks cover 360 template slides, embedded JPEGs, native charts and workbook cells. The 180 new slides were visually reviewed in six contact sheets. TypeScript, package boundaries, SDK/demo builds, packed-consumer checks and the documentation build passed. Captures are in `artifacts/editor-60/`. No device tests were run.
