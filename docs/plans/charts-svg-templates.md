@@ -28,7 +28,7 @@ Design research and 30 original six-slide briefs: [presentation-template-design.
 
 The reported Layers clipping was reproduced at 16px row height versus 31.95px required for the line and padding. Default flex shrinking compressed the rows inside the 180px scrolling panel. Disabling row shrink preserves readable rows and scrolling. The browser regression covers crowded template layers at desktop and narrow widths, bottom-row selection and keyboard selection. Changed SVG artwork and differently sized doughnut charts also keep paint/mask references isolated across scene previews.
 
-Publication was not requested for this new scope. Leave release versions unchanged unless the user requests a release.
+The user subsequently requested merging, deploying and publishing this scope. Release 0.7.0 includes both SDK packages, documentation and the playground.
 
 ## Editorial redesign iteration
 

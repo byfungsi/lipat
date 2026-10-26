@@ -1,6 +1,6 @@
 # Presentation templates
 
-Unreleased additions after 0.6.0; use the current source build until the next package release.
+Available in `@byfungsi/lipat` 0.7.0 and later.
 
 Lipat includes **60 original six-slide deck templates** spanning business, education, research, health, public service, operations and creative work. They are complete editable decks with text, shapes, native charts where useful, speaker notes and embedded editorial photography. They render without remote images or fonts. All sample figures, organizations, quotations and scenarios are illustrative.
 

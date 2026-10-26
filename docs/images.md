@@ -59,7 +59,7 @@ Each distinct URL is loaded once per call. New asset IDs avoid collisions with e
 
 ## SVG image assets
 
-SVG support is an unreleased addition after 0.6.0. Use an ordinary image node referencing an SVG asset:
+SVG support is available in 0.7.0 and later. Use an ordinary image node referencing an SVG asset:
 
 ```ts
 import { createSvgAsset } from "@byfungsi/lipat/images";

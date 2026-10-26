@@ -1,6 +1,6 @@
 {
   "name": "@byfungsi/lipat",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Agent-friendly slide authoring, independent PPTX import/export, React views and a Rust WebAssembly core",
   "type": "module",
   "sideEffects": [

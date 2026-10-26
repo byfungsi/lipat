@@ -54,7 +54,7 @@ Node moves use the insertion index after removing the original node. A node cann
 
 `/react` exports `DeckEditor` and `createBrowserPlayback`. Optional `editor.css` styles the editor without global JavaScript import effects. `/react-native` exports `NativeDeckEditor`, `NativeScenePreview`, `NativeScenePlayer` and `NativeSceneSlide`. `/native` exports `createLipatFromNative(bridge, options?)`; the optional `@byfungsi/lipat-native` Expo add-on supplies `createNativeLipat(options?)` backed by Rust, with no WebAssembly requirement. See [native setup](./react-native.md).
 
-## Charts and templates (unreleased)
+## Charts and templates (0.7.0+)
 
 Chart nodes and scene elements use `type: "chart"` with `ChartData`. `setChartData` replaces a chart's portable data atomically. `maxChartPoints` bounds cumulative category × series values. `/core` exports `formatChartTable` and `parseChartTable` for spreadsheet-paste editing. See [charts](./charts.md).
 

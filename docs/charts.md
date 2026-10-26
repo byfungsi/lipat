@@ -1,6 +1,6 @@
 # Charts
 
-Unreleased additions after 0.6.0; use the current source build until the next package release.
+Available in `@byfungsi/lipat` 0.7.0 and later.
 
 Charts are editable document nodes. The Rust compiler carries their data into the scene, the SVG renderers draw the same data, and the PPTX writer creates native PowerPoint charts with an embedded XLSX workbook. Browser, WASM, workerd and the native Rust engine share this contract. No chart service or browser canvas is required.
 
